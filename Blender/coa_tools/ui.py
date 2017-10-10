@@ -588,6 +588,8 @@ class CutoutAnimationTools(bpy.types.Panel):
                 if sprite_object.coa_edit_mesh == False and sprite_object.coa_edit_armature == False and sprite_object.coa_edit_weights == False and not(obj.type == "MESH" and obj.mode=="EDIT") and (sprite_object) != None:
                     row = layout.row(align=True)
                     row.operator("object.coa_edit_weights",text="Edit Weights",icon="MOD_VERTEX_WEIGHT")
+                    row = layout.row(align=True)
+                    row.operator("action.rhubarb_lipsync", text="Lipsync", icon="CLIP")
                 elif sprite_object.coa_edit_weights:
                     row = layout.row(align=True)
                     row.prop(sprite_object,"coa_edit_weights", text="Finish Edit Weights", toggle=True, icon="MOD_VERTEX_WEIGHT")
@@ -608,7 +610,7 @@ class CutoutAnimationTools(bpy.types.Panel):
                     row.prop(tool_settings.unified_paint_settings,"use_pressure_strength",text="")
                     row = col.row(align=True)
                     row.prop(tool_settings,"use_auto_normalize",text="Auto Normalize")
-                    
+
         if context.active_object != None and "coa_sprite" in obj and context.active_object.mode == "EDIT" and context.active_object.type == "MESH" and sprite_object.coa_edit_mesh:
             row = layout.row(align=True)
             row.label(text="Mesh Tools:")
