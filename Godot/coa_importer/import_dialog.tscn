@@ -1,180 +1,399 @@
-[gd_scene format=1]
+[gd_scene format=2]
 
-[node name="Panel" type="ConfirmationDialog"]
+[node name="Panel" type="ConfirmationDialog" index="0"]
 
-margin/right = 982.0
-margin/bottom = 606.0
-focus/ignore_mouse = false
-focus/stop_mouse = false
-size_flags/horizontal = 2
-size_flags/vertical = 2
-popup/exclusive = false
-window/title = "Import Cutout Animation File"
-dialog/hide_on_ok = false
-__meta__ = { "__editor_plugin_screen__":"Script" }
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 982.0
+margin_bottom = 606.0
+rect_min_size = Vector2( 982, 606 )
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+popup_exclusive = false
+window_title = "Import Cutout Animation File"
+resizable = false
+dialog_hide_on_ok = false
+_sections_unfolded = [ "Anchor", "Margin", "Popup", "Rect", "Size Flags" ]
+__meta__ = {
+"__editor_plugin_screen__": "Script"
+}
 
-[node name="path_source_file" type="Tree" parent="."]
+[node name="VBoxContainer2" type="VBoxContainer" parent="." index="3"]
 
-margin/left = 194.0
-margin/top = 41.0
-margin/right = 938.0
-margin/bottom = 64.0
-focus/ignore_mouse = true
-focus/stop_mouse = false
-size_flags/horizontal = 2
-size_flags/vertical = 2
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 974.0
+margin_bottom = 570.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
 
-[node name="label" type="Label" parent="path_source_file"]
+[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer2" index="0"]
 
-margin/left = 10.0
-margin/top = 3.0
-margin/right = 737.0
-margin/bottom = 20.0
-focus/ignore_mouse = true
-focus/stop_mouse = true
-size_flags/horizontal = 2
-valign = 1
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 966.0
+margin_bottom = 50.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
 
-[node name="path_destination_file" type="Tree" parent="."]
+[node name="VBoxContainerButtons" type="VBoxContainer" parent="VBoxContainer2/HBoxContainer2" index="0"]
 
-margin/left = 194.0
-margin/top = 81.0
-margin/right = 938.0
-margin/bottom = 104.0
-focus/ignore_mouse = true
-focus/stop_mouse = false
-size_flags/horizontal = 2
-size_flags/vertical = 2
+editor/display_folded = true
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 153.0
+margin_bottom = 50.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
 
-[node name="label" type="Label" parent="path_destination_file"]
+[node name="button_source" type="Button" parent="VBoxContainer2/HBoxContainer2/VBoxContainerButtons" index="0"]
 
-margin/left = 10.0
-margin/top = 3.0
-margin/right = 737.0
-margin/bottom = 20.0
-focus/ignore_mouse = true
-focus/stop_mouse = true
-size_flags/horizontal = 2
-valign = 1
-percent_visible = 1.0
-lines_skipped = 0
-max_lines_visible = -1
-
-[node name="button_source" type="Button" parent="."]
-
-margin/left = 44.0
-margin/top = 39.0
-margin/right = 197.0
-margin/bottom = 66.0
-focus/ignore_mouse = false
-focus/stop_mouse = true
-size_flags/horizontal = 2
-size_flags/vertical = 2
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 153.0
+margin_bottom = 23.0
+rect_min_size = Vector2( 153, 23 )
+rect_pivot_offset = Vector2( 0, 0 )
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
 toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
 text = "Source File"
 flat = false
+align = 1
+_sections_unfolded = [ "Rect" ]
 
-[node name="button_destination" type="Button" parent="."]
+[node name="button_destination" type="Button" parent="VBoxContainer2/HBoxContainer2/VBoxContainerButtons" index="1"]
 
-margin/left = 44.0
-margin/top = 79.0
-margin/right = 197.0
-margin/bottom = 106.0
-focus/ignore_mouse = false
-focus/stop_mouse = true
-size_flags/horizontal = 2
-size_flags/vertical = 2
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 27.0
+margin_right = 153.0
+margin_bottom = 50.0
+rect_min_size = Vector2( 153, 23 )
+rect_pivot_offset = Vector2( 0, 0 )
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
 toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
 text = "Destination File"
 flat = false
+align = 1
+_sections_unfolded = [ "Rect" ]
 
-[node name="json_info" type="Tree" parent="."]
+[node name="VBoxContainerFileNames" type="VBoxContainer" parent="VBoxContainer2/HBoxContainer2" index="1"]
 
-margin/left = 43.0
-margin/top = 151.0
-margin/right = 939.0
-margin/bottom = 527.0
-focus/ignore_mouse = true
-focus/stop_mouse = false
-size_flags/horizontal = 2
-size_flags/vertical = 2
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 157.0
+margin_right = 901.0
+margin_bottom = 50.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 1
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+alignment = 0
+_sections_unfolded = [ "Rect" ]
 
-[node name="text" type="RichTextLabel" parent="json_info"]
+[node name="path_source_file" type="Tree" parent="VBoxContainer2/HBoxContainer2/VBoxContainerFileNames" index="0"]
 
-anchor/right = 1
-anchor/bottom = 1
-margin/left = 10.0
-margin/top = 10.0
-margin/right = 10.0
-margin/bottom = 11.0
-focus/ignore_mouse = false
-focus/stop_mouse = false
-size_flags/horizontal = 2
-size_flags/vertical = 2
-bbcode/enabled = false
-bbcode/bbcode = ""
-visible_characters = -1
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 744.0
+margin_bottom = 23.0
+rect_min_size = Vector2( 744, 23 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+columns = 1
+allow_reselect = false
+allow_rmb_select = false
+hide_folding = false
+hide_root = false
+drop_mode_flags = 0
+select_mode = 0
+_sections_unfolded = [ "Anchor", "Grow Direction", "Margin", "Rect" ]
 
-[node name="check_merge_scenes" type="CheckBox" parent="."]
+[node name="label" type="Label" parent="VBoxContainer2/HBoxContainer2/VBoxContainerFileNames/path_source_file" index="6"]
 
-margin/left = 44.0
-margin/top = 121.0
-margin/right = 70.0
-margin/bottom = 143.0
-hint/tooltip = "If checked, resource and destination scene get merged. \nCustom Nodes and Animations will be preserved in the destination scene. \n\nOtherwise destination scene gets overwritten."
-focus/ignore_mouse = false
-focus/stop_mouse = true
-size_flags/horizontal = 2
-size_flags/vertical = 2
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 744.0
+margin_bottom = 23.0
+rect_min_size = Vector2( 744, 23 )
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 4
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "Rect" ]
+
+[node name="path_destination_file" type="Tree" parent="VBoxContainer2/HBoxContainer2/VBoxContainerFileNames" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 27.0
+margin_right = 744.0
+margin_bottom = 50.0
+rect_min_size = Vector2( 744, 23 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+columns = 1
+allow_reselect = false
+allow_rmb_select = false
+hide_folding = false
+hide_root = false
+drop_mode_flags = 0
+select_mode = 0
+_sections_unfolded = [ "Rect" ]
+
+[node name="label" type="Label" parent="VBoxContainer2/HBoxContainer2/VBoxContainerFileNames/path_destination_file" index="6"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_right = 744.0
+margin_bottom = 23.0
+rect_min_size = Vector2( 744, 23 )
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 2
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 4
+valign = 1
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+_sections_unfolded = [ "Rect" ]
+
+[node name="MarginContainer" type="MarginContainer" parent="VBoxContainer2" index="1"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 54.0
+margin_right = 966.0
+margin_bottom = 78.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+
+[node name="check_merge_scenes" type="CheckBox" parent="VBoxContainer2/MarginContainer" index="0"]
+
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 8.0
+margin_right = 270.0
+margin_bottom = 24.0
+rect_pivot_offset = Vector2( 0, 0 )
+focus_mode = 2
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
 toggle_mode = true
-is_pressed = true
+enabled_focus_mode = 2
+shortcut = null
+group = null
 text = "Merge Source and Destination Scene"
 flat = true
 align = 0
+_sections_unfolded = [ "Anchor", "Grow Direction", "Hint", "Margin", "Rect" ]
 
-[node name="file_source" type="FileDialog" parent="."]
+[node name="json_info" type="MarginContainer" parent="VBoxContainer2" index="2"]
 
-visibility/visible = false
-margin/right = 982.0
-margin/bottom = 606.0
-focus/ignore_mouse = false
-focus/stop_mouse = true
-size_flags/horizontal = 2
-size_flags/vertical = 2
-popup/exclusive = true
-window/title = "Save a File"
-dialog/hide_on_ok = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_top = 82.0
+margin_right = 966.0
+margin_bottom = 532.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
 
-[node name="file_destination" type="FileDialog" parent="."]
+[node name="text" type="RichTextLabel" parent="VBoxContainer2/json_info" index="0"]
 
-visibility/visible = false
-margin/right = 982.0
-margin/bottom = 606.0
-focus/ignore_mouse = false
-focus/stop_mouse = true
-size_flags/horizontal = 2
-size_flags/vertical = 2
-popup/exclusive = true
-window/title = "Save a File"
-dialog/hide_on_ok = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 8.0
+margin_right = 903.0
+margin_bottom = 450.0
+rect_min_size = Vector2( 895, 450 )
+rect_pivot_offset = Vector2( 0, 0 )
+rect_clip_content = true
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+bbcode_enabled = false
+bbcode_text = ""
+visible_characters = -1
+percent_visible = 1.0
+meta_underlined = true
+tab_size = 4
+text = ""
+scroll_active = true
+scroll_following = false
+selection_enabled = false
+override_selected_font_color = false
+_sections_unfolded = [ "Rect" ]
 
-[node name="warning_dialog" type="AcceptDialog" parent="."]
+[node name="file_source" type="FileDialog" parent="." index="4"]
 
-visibility/visible = false
-margin/left = 326.0
-margin/top = 211.0
-margin/right = 611.0
-margin/bottom = 365.0
-focus/ignore_mouse = false
-focus/stop_mouse = true
-size_flags/horizontal = 2
-size_flags/vertical = 2
-popup/exclusive = true
-window/title = "Warning"
-dialog/text = "Please select Source and Destination File"
-dialog/hide_on_ok = true
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 974.0
+margin_bottom = 570.0
+rect_min_size = Vector2( 200, 70 )
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+popup_exclusive = true
+window_title = "Save a File"
+resizable = false
+dialog_hide_on_ok = false
+mode_overrides_title = true
+mode = 4
+access = 0
+filters = PoolStringArray(  )
+show_hidden_files = false
+current_dir = "res://"
+current_file = ""
+current_path = "res://"
+_sections_unfolded = [ "Visibility" ]
+
+[node name="file_destination" type="FileDialog" parent="." index="5"]
+
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 974.0
+margin_bottom = 570.0
+rect_min_size = Vector2( 200, 70 )
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 2
+size_flags_vertical = 2
+popup_exclusive = true
+window_title = "Save a File"
+resizable = false
+dialog_hide_on_ok = false
+mode_overrides_title = true
+mode = 4
+access = 0
+filters = PoolStringArray(  )
+show_hidden_files = false
+current_dir = "res://"
+current_file = ""
+current_path = "res://"
+_sections_unfolded = [ "Visibility" ]
+
+[node name="warning_dialog" type="AcceptDialog" parent="." index="6"]
+
+visible = false
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 0.0
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 974.0
+margin_bottom = 570.0
+rect_pivot_offset = Vector2( 0, 0 )
+mouse_filter = 0
+mouse_default_cursor_shape = 0
+size_flags_horizontal = 1
+size_flags_vertical = 1
+popup_exclusive = true
+window_title = "Warning"
+resizable = false
+dialog_text = "Please select Source and Destination File"
+dialog_hide_on_ok = true
+_sections_unfolded = [ "Anchor", "Dialog", "Focus", "Hint", "Margin", "Material", "Mouse", "Popup", "Rect", "Size Flags", "Theme", "Visibility" ]
 
 
