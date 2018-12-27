@@ -71,7 +71,7 @@ It should show up unde Files>Export to CoaTools... after your restart GIMP
 The add-on is in this repository (`Blender/coa_tools`), so download it:
 
 - [Download this repository](https://github.com/ndee85/coa_tools/releases/latest) and extract it
-- Zip the subfolder `coa_tools/Blender/coa_tools` so that you have a `coa_tools.zip` folder.
+- Zip the subfolder `coa_tools/Blender/coa_tools` so that you have a `coa_tools.zip` file.
 
 Import and enable the add-on in Blender:
 
