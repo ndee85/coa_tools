@@ -65,11 +65,46 @@ It should show up unde Files>Export to CoaTools... after your restart GIMP
 
 
 ### Blender Addon:
-Zip the coa_folder.
-Go to File -> User Preferences -> Add-ons and click the “Install from file...” button.
-This will install and enable the Addon for Blender. Don’t forget to save the user preferences, otherwise the addon will not be activated after restart.
 
-<a href="http://misc.artbyndee.de/coa_tools_installation.gif"><img src="http://misc.artbyndee.de/coa_tools_installation.gif" width="250" /></a>
+![Blender addon interface](Blender/screenshots/interface.png)
+
+The add-on is in this repository (`Blender/coa_tools`), so download it:
+
+- [Download this repository](https://github.com/ndee85/coa_tools/releases/latest) and extract it
+- Zip the subfolder `coa_tools/Blender/coa_tools` so that you have a `coa_tools.zip` folder.
+
+Import and enable the add-on in Blender:
+
+- In Blender, go to File -> User Preferences, and open the "Add-ons" tab
+
+![Open add-ons](Blender/screenshots/install-open-addons.png)
+
+- Click "Install Add-on from file..." at the bottom of the User Preferences window
+- Load your zipped file `coa_tools.zip`
+- Search for "coa" to find the COA Tools add-on, then enable it, and don't forget to enable "DragonBones export" if you need to
+- Click "Save user settings" to make sure the addon is still enabled ater Blender restart.
+
+![Enable add-ons](Blender/screenshots/install-enable-addon.png)
+
+You're good to go !
+
+- You should now see the "Cutout Animation" side-tab, open it
+- Create your first Sprite object, and you can now start to build your armature.
+
+![Create new sprite](Blender/screenshots/install-new-sprite.png)
+
+[Take a look at the addon in action.](https://www.youtube.com/playlist?list=PLPI26-KXCXpA-VMlDIWpmdq6M1m4LEjf_)
+
+**Note** To use DragonBones export feature:
+
+You have to configure export name and export path or you'll get the error `Export Path does not exists. Set a valid Export Path.`
+
+- In the "Properties" view, "Render" tab, scroll to the very bottom to the "Dragonbones Export Panel"
+- Fill in the "Project name" and set an "Export path"
+- Check the "Bake animation" checkbox to have an accurate animation (it is needed if you use DragonBones JS runtime)
+
+![Dragonbones Export Panel](Blender/screenshots/install-export.png)
+
 
 ### Godot Importer:
 Notice, this importer will only run with current godot 2.1 dev builds. 
