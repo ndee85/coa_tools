@@ -6,7 +6,7 @@
 #
 # DESCRIPTION
 #   CoaTools Exporter is a plug-in for GIMP to export layered cut-out animation
-#   object or characters to Cutout Animation Tools: 2D Animation Tools for Blender 
+#   object or characters to Cutout Animation Tools: 2D Animation Tools for Blender
 #   (see https://github.com/ndee85/coa_tools)
 #
 # INSTALLATION
@@ -14,7 +14,7 @@
 #
 # VERSION
 version = "0.0.0"
-# AUTHOR 
+# AUTHOR
 author = [ 'Ragnar Brynjúlfsson <me@ragnarb.com>', ' ']
 # COPYRIGHT
 copyright = "Copyright 2016 © Ragnar Brynjúlfsson"
@@ -48,7 +48,7 @@ from gimpfu import *
 
 class Sprite():
     ''' Store file and transform data for each sprite '''
-    
+
     def __init__(self, name):
         self.name = name
         self.path = 'sprites/{name}'.format(name=self.name)
@@ -64,7 +64,8 @@ class Sprite():
         data = {
             "name": self.name,
             "type": "SPRITE",
-            "resource_path": self.path,
+            "resource_path": self.resource_path,
+            "vector_path": self.vector_path,
             "node_path": self.name,
             "pivot_offset": [0.0, 0.0],
             "offset": self.offset,
@@ -79,7 +80,7 @@ class Sprite():
             "children": []
         }
         return data
-            
+
 
 class CoaExport():
     def __init__(self, img, path, name):
@@ -94,6 +95,7 @@ class CoaExport():
             self.sprites = []
             self.json = os.path.join(self.path, self.name, '{name}.json'.format(name=self.name))
             self.sprite_path = os.path.join(self.path, self.name, 'sprites')
+            self.vector_path = os.path.join(self.path, self.name, 'paths')
             self.export()
 
     def paste_layer(self, img, name, x, y):
@@ -103,7 +105,7 @@ class CoaExport():
                                  img.height)
         floating_layer = pdb.gimp_edit_paste(layer, True)
         pdb.gimp_floating_sel_anchor(floating_layer)
-        pdb.plug_in_autocrop_layer(img, layer)
+        self.crop_alpha_from_layer(img, layer)
         pdb.gimp_layer_set_offsets(layer, x, y)
 
     def export(self):
@@ -122,22 +124,26 @@ class CoaExport():
         self.img.undo_group_start()
         for layer in self.img.layers:
             if layer.visible:
-                name = '{name}.png'.format(name=layer.name)
                 pdb.gimp_image_set_active_layer(self.img, layer)
                 # Crop and the layer position
-                pdb.plug_in_autocrop_layer(self.img, layer)
+                self.crop_alpha_from_layer(self.img, layer, False)
+                self.selection_to_path(self.img, layer)
                 z = 0 - pdb.gimp_image_get_item_position(self.img, layer)
                 if isinstance(layer, gimp.GroupLayer):
                     if len(layer.children) > 0:
-                        self.sprites.append(self.export_sprite_sheet(layer, name, layer.offsets, z))
+                        self.sprites.append(self.export_sprite_sheet(layer, layer.offsets, z))
                 else:
-                    self.sprites.append(self.export_sprite(layer, name, layer.offsets, z))
+                    self.sprites.append(self.export_sprite(layer, layer.offsets, z))
+        for vector in self.img.vectors:
+            self.export_vector(self.img, vector)
         self.write_json()
         self.img.undo_group_end()
         pdb.gimp_image_delete(self.img)
 
-    def export_sprite(self, layer, name, position, z):
+    def export_sprite(self, layer, position, z):
         ''' Export single layer to png '''
+        name = '{name}.png'.format(name=layer.name)
+        svg_name = '{name}.svg'.format(name=layer.name)
         pdb.gimp_edit_copy(layer)
         imgtmp = pdb.gimp_edit_paste_as_new()
         sprite_path = os.path.join(self.sprite_path, name)
@@ -146,13 +152,19 @@ class CoaExport():
         # Return sprite object with relevant data
         sprite = Sprite(name)
         sprite.resource_path = 'sprites/{name}'.format(name=name)
+        sprite.vector_path = 'paths/{svg_name}'.format(svg_name=svg_name)
         sprite.offset = self.offset
         sprite.position = position
         sprite.opacity = layer.opacity / 100
         sprite.z = z
         return sprite
 
-    def export_sprite_sheet(self, layer, name, position, z):
+    def export_vector(self, img, vector):
+        name = '{name}.svg'.format(name=vector.name)
+        vector_path = os.path.join(self.vector_path, name)
+        pdb.gimp_vectors_export_to_file(img, vector_path, vector)
+
+    def export_sprite_sheet(self, layer, position, z):
         ''' Export layer group to a sprite sheet '''
         # Find grid size
         #frames = len(layer.children)
@@ -162,18 +174,18 @@ class CoaExport():
                 frames = frames + 1
         gridx = floor(sqrt(frames))
         gridy = ceil(frames / gridx)
-        # TODO! Replace autocrop with a custom function that only crops transparent areas.
-        pdb.plug_in_autocrop_layer(self.img, layer)
+        self.crop_alpha_from_layer(self.img, layer)
         img2 = gimp.Image(int(layer.width * gridx), int(layer.height * gridy))
         img2.new_layer('background', img2.width, img2.height)
         col = 1
         row = 1
-        name = '{name}.png'.format(name = layer.name)
+        name = '{name}.png'.format(name=layer.name)
+        svg_name = '{name}.svg'.format(name=layer.name)
         # Looop through child layers in the layer group
         for child in layer.children:
             if child.visible and not isinstance(child, gimp.GroupLayer):
                 pdb.gimp_image_set_active_layer(self.img, child)
-                pdb.plug_in_autocrop_layer(self.img, child)
+                self.crop_alpha_from_layer(self.img, child)
                 x_delta = child.offsets[0] - layer.offsets[0]
                 y_delta = child.offsets[1] - layer.offsets[1]
                 pdb.gimp_edit_copy(child)
@@ -194,6 +206,7 @@ class CoaExport():
         # Return sprite object with relevant data
         sprite = Sprite(name)
         sprite.resource_path = 'sprites/{name}'.format(name=name)
+        sprite.vector_path = 'paths/{svg_name}'.format(svg_name=svg_name)
         sprite.offset = self.offset
         sprite.position = position
         sprite.opacity = layer.opacity / 100
@@ -201,12 +214,14 @@ class CoaExport():
         sprite.tiles_x = int(gridx)
         sprite.tiles_y = int(gridy)
         return sprite
-        
+
     def mkdir(self):
         ''' Make a destination dir for the sprites and json file '''
         try:
             if not os.path.isdir(self.sprite_path):
                 os.makedirs(self.sprite_path)
+            if not os.path.isdir(self.vector_path):
+                os.makedirs(self.vector_path)
         except Exception, err:
             show_error_msg(err)
 
@@ -239,7 +254,28 @@ class CoaExport():
         sprite_file = open(self.json, "w")
         sprite_file.write(json_data)
         sprite_file.close()
-        
+
+    def crop_alpha_from_layer(self, img, layer, clear_selection=True):
+        pdb.gimp_selection_layer_alpha(layer)
+        pdb.gimp_selection_grow(img, 10)
+        pdb.gimp_selection_feather(img, 50)
+
+        x0,y0 = pdb.gimp_drawable_offsets(layer)
+        non_empty, x1, y1, x2, y2 = pdb.gimp_selection_bounds(img)
+        pdb.gimp_layer_resize(layer, x2-x1, y2-y1, x0-x1, y0-y1)
+        if clear_selection:
+            pdb.gimp_selection_clear(img)
+
+    def selection_to_path(self, img, layer):
+        names = [vector.name for vector in img.vectors]
+        pdb.plug_in_sel2path(img, layer)
+        updated_names = [vector.name for vector in img.vectors]
+        vector_name = list(set(updated_names) - set(names))[0]
+
+        for vector in img.vectors:
+            if vector.name == vector_name:
+                vector.name = layer.name
+
 
 def show_error_msg( msg ):
     # Output error messages to the GIMP error console.
@@ -253,7 +289,7 @@ def export_to_coatools(img, drw, path, name):
         export = CoaExport(img, path, name)
     else:
         show_error_msg("Please enter a file name.")
-        
+
 
 register(
     "python_fu_coatools",
