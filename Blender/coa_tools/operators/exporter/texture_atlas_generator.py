@@ -318,6 +318,8 @@ class TextureAtlasGenerator:
                 atlas_obj.data = atlas_obj.data.copy()
                 render_collection.objects.link(atlas_obj)
                 atlas_objs.append(atlas_obj)
+                atlas_obj.coa_tools.driver_remove("alpha")
+                atlas_obj.coa_tools.alpha = 1.0
 
                 obj_scale_x = atlas_obj.dimensions[0] / slot.texture_data.width
                 obj_scale_y = atlas_obj.dimensions[2] / slot.texture_data.height
