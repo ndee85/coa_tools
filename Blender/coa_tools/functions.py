@@ -823,7 +823,7 @@ def display_children(self, context, obj):
                             subrow.prop(obj2.coa_tools,"show_children",text="",icon="TRIA_DOWN",emboss=False)
                         else:
                             subrow.prop(obj2.coa_tools,"show_children",text="",icon="TRIA_RIGHT",emboss=False)
-                    op = subrow.operator("coa_tools.show_children",text=obj2.name,emboss=False)
+                    op = subrow.operator("coa_tools.select_child",text=obj2.name,emboss=False)
                     op.mode = "object"
                     op.ob_name = obj2.name
 
@@ -922,7 +922,7 @@ def draw_children(self,context,sprite_object,layout,box,row,col,children,obj,cur
                                 subrow2.label(text="",icon="CAMERA_DATA")
 
 
-                            op = subrow2.operator("coa_tools.show_children",text=name,emboss=False)
+                            op = subrow2.operator("coa_tools.select_child",text=name,emboss=False)
                             op.mode = "object"
                             op.ob_name = child.name
 

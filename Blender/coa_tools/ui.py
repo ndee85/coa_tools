@@ -32,6 +32,7 @@ from bpy_extras.io_utils import ExportHelper, ImportHelper
 import json
 from . import functions
 from . import addon_updater_ops
+from . outliner import *
 #from . import preview_collections
 
 bone_layers = []
@@ -117,6 +118,32 @@ class COATOOLS_PT_ObjectProperties(bpy.types.Panel):
         if not context.scene.coa_tools.deprecated_data_found:
             return context
 
+    def draw_outliner(self, context, layout, sprite_object, scene):
+        ### new Outliner
+        box = layout.box()
+        col = box.column(align=True)
+        row = col.row(align=True)
+        row.label(text="", icon="OUTLINER")
+        row.prop(context.scene.coa_tools, "outliner_filter_names", text="", icon="VIEWZOOM")
+        if context.scene.coa_tools.outliner_favorites:
+            row.prop(context.scene.coa_tools, "outliner_favorites", text="", icon="SOLO_ON")
+        else:
+            row.prop(context.scene.coa_tools, "outliner_favorites", text="", icon="SOLO_OFF")
+
+        row = col.row()
+        row.template_list("COATOOLS_UL_Outliner", "", scene.coa_tools, "outliner", scene.coa_tools, "outliner_index",
+                          rows=10)
+        row = col.row()
+        if sprite_object.coa_tools.edit_mesh:
+            row.prop(sprite_object.coa_tools, "edit_mesh", text="", toggle=True, icon="LOOP_BACK")
+        if sprite_object.coa_tools.edit_armature:
+            row.prop(sprite_object.coa_tools, "edit_armature", text="", toggle=True, icon="LOOP_BACK")
+        if sprite_object.coa_tools.edit_weights:
+            row.prop(sprite_object.coa_tools, "edit_weights", text="", toggle=True, icon="LOOP_BACK")
+        if sprite_object.coa_tools.edit_shapekey:
+            row.prop(sprite_object.coa_tools, "edit_shapekey", text="", toggle=True, icon="LOOP_BACK")
+        ###
+
     def draw(self, context):
         global last_obj
 
@@ -129,7 +156,8 @@ class COATOOLS_PT_ObjectProperties(bpy.types.Panel):
         sprite_object = functions.get_sprite_object(obj)
         scene = context.scene
 
-        functions.display_children(self,context,obj)
+        # functions.display_children(self, context, obj)
+        self.draw_outliner(context, layout, sprite_object, scene)
 
         if sprite_object != None and obj != None:
             row = layout.row(align=True)
@@ -512,10 +540,12 @@ class COATOOLS_UL_EventCollection(bpy.types.UIList):
 
 ######################################################################################################################################### Select Child Operator
 class COATOOLS_OT_SelectChild(bpy.types.Operator):
-    bl_idname = "coa_tools.show_children"
+    bl_idname = "coa_tools.select_child"
     bl_label = "select_child"
 
     ob_name: StringProperty()
+    outliner_index: IntProperty(default=0)
+    outliner_index_old = 0
     bone_name: StringProperty()
 
     def __init__(self):
@@ -551,7 +581,15 @@ class COATOOLS_OT_SelectChild(bpy.types.Operator):
 
         elif self.mode == "bone":
             armature_ob = bpy.data.objects[self.ob_name]
+            armature_ob.select_set(True)
+            context.view_layer.objects.active = armature_ob
             armature = bpy.data.armatures[armature_ob.data.name]
+            bpy.ops.object.mode_set(mode="POSE")
+            for bone in armature.bones:
+                bone.select = False
+                bone.select_head = False
+                bone.select_tail = False
+
             bone = armature.bones[self.bone_name]
             bone.select = not bone.select
             bone.select_tail = not bone.select_tail
@@ -564,111 +602,26 @@ class COATOOLS_OT_SelectChild(bpy.types.Operator):
     def shift_select_child(self,context,event):
         self.change_object_mode(context)
 
-        sprite_object = functions.get_sprite_object(context.active_object)
-        children = []
-        armature = None
-        if self.mode == "object":
-            children = functions.get_children(context,sprite_object,ob_list=[])
-            ### sort children
-            children = sorted(children, key=lambda x: x.location[1] if type(x) == bpy.types.Object else x.name,reverse=False)
-            children = sorted(children, key=lambda x: x.type if type(x) == bpy.types.Object else x.name,reverse=False)
-            if len(children) > 1 and type(children[1]) == bpy.types.Object and children[1].type == "CAMERA":
-                children.insert(0,children.pop(1))
-        else:
-            armature = bpy.data.armatures[self.ob_name]
-            for bone in armature.bones:
-                children.append(bone)
+        self.outliner_index_old = context.scene.coa_tools["outliner_index"]
+        outliner = context.scene.coa_tools.outliner
 
-        from_index = 0
-        to_index = 0
-        for i,child in enumerate(children):
-            if self.mode == "object":
-                if child.name == self.ob_name:
-                    to_index = i
-            elif self.mode == "bone":
-                if child.name == self.bone_name:
-                    to_index = i
-            if child.select_get():
-                from_index = i
-
-        select_range = []
-        if from_index < to_index:
-            for i in range(from_index,to_index+1):
-                select_range.append(i)
-        else:
-            for i in range(to_index,from_index):
-                select_range.append(i)
-        for i,child in enumerate(children):
-            if i in select_range:
-                child.select_set(True)
-
-        if self.mode == "object":
-            context.view_layer.objects.active = bpy.data.objects[self.ob_name]
-        elif self.mode == "bone":
-            context.view_layer.objects.active = bpy.data.objects[self.ob_name]
-            armature.bones.active = armature.bones[self.bone_name]
-
-    def change_weight_mode(self, context, mode):
-        if self.sprite_object.coa_tools.edit_weights:
-            armature = functions.get_armature(self.sprite_object)
-            armature.select = True
-            bpy.ops.view3d.localview()
-            bpy.context.space_data.viewport_shade = 'TEXTURED'
-
-            ### zoom to selected mesh/sprite
-            for obj in bpy.context.selected_objects:
-                obj.select_set(False)
-            obj = bpy.data.objects[context.active_object.name]
-            obj.select = True
-            context.scene.objects.active = obj
-            bpy.ops.view3d.view_selected()
-
-            ### set uv image
-            functions.set_uv_image(obj)
-
-
-            bpy.ops.object.mode_set(mode=mode)
+        start_index = min(self.outliner_index_old, self.outliner_index)
+        end_index = max(self.outliner_index_old, self.outliner_index)
+        index_range = range(start_index, end_index+1)
+        for item in outliner:
+            if item.index in index_range:
+                if item.object_type in ["MESH", "ARMATURE"]:
+                    bpy.data.objects[item.name].select_set(True)
+                    if item.index == self.outliner_index:
+                        context.view_layer.objects.active = bpy.data.objects[item.name]
 
     def invoke(self, context, event):
         self.sprite_object = functions.get_sprite_object(context.active_object)
         self.armature = functions.get_armature(self.sprite_object)
-
-        if self.sprite_object.coa_tools.edit_mesh:
-            obj = bpy.data.objects[self.ob_name]
-            obj.hide = False
-
-        if self.sprite_object != None:
-            self.change_weight_mode(context,"OBJECT")
-
-        if self.sprite_object != None:
-            if context.active_object != None and context.active_object.type == "ARMATURE" and context.active_object.mode == "EDIT" and event.alt:
-                obj = bpy.data.objects[self.ob_name]
-                if obj.type == "MESH":
-                    functions.set_weights(self,context,obj)
-                    msg = '"'+self.ob_name+'"' + " has been bound to selected Bones."
-                    self.report({'INFO'},msg)
-                else:
-                    self.report({'WARNING'},"Can only bind Sprite Meshes to Bones")
-                return{"FINISHED"}
-
-            if event.shift and not self.sprite_object.coa_tools.edit_weights:
-                self.shift_select_child(context,event)
-            if not self.sprite_object.coa_tools.edit_weights or ( self.sprite_object.coa_tools.edit_weights and bpy.data.objects[self.ob_name].type == "MESH"):
-                if not event.ctrl and not event.shift:
-                    if self.mode == "bone":
-                        for bone in bpy.data.objects[self.ob_name].data.bones:
-                            bone.select = False
-                            bone.select_head = False
-                            bone.select_tail = False
-                if not event.shift:
-                    self.select_child(context,event)
-
-            if self.sprite_object.coa_tools.edit_weights:
-                functions.create_armature_parent(context)
-            self.change_weight_mode(context,"WEIGHT_PAINT")
+        if event.shift:
+            self.shift_select_child(context, event)
         else:
-            self.shift_select_child(context,event)
-
+            self.select_child(context, event)
         return{'FINISHED'}
 
 class COATOOLS_PT_Collections(bpy.types.Panel):

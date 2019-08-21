@@ -42,10 +42,11 @@ from . import addon_updater_ops
 # load and reload submodules
 ##################################
 
-from . import coa_properties as props
+from . import properties as props
 
 from . import ui as user_interface
 from . ui import preview_collections
+from . import outliner
 from . operators.pie_menu import preview_collections_pie
 from . functions import *
 
@@ -129,6 +130,10 @@ class COAToolsPreferences(bpy.types.AddonPreferences):
 
 classes = (
     COAToolsPreferences,
+    # outliner
+    outliner.COAOutliner,
+    outliner.COATOOLS_UL_Outliner,
+
     #properties
     props.UVData,
     props.SlotData,
@@ -159,7 +164,6 @@ classes = (
     user_interface.COATOOLS_UL_EventCollection,
     user_interface.COATOOLS_OT_SelectChild,
     user_interface.COATOOLS_PT_Collections,
-
 
     view_sprites.COATOOLS_OT_ChangeZOrdering,
     view_sprites.COATOOLS_OT_ViewSprite,
@@ -270,6 +274,7 @@ def register():
     register_keymaps()
 
     # create handler
+    bpy.app.handlers.depsgraph_update_pre.append(outliner.create_outliner_items)
     bpy.app.handlers.depsgraph_update_post.append(update_properties)
     bpy.app.handlers.frame_change_post.append(update_properties)
     bpy.app.handlers.load_post.append(check_view_2D_3D)
@@ -292,6 +297,7 @@ def unregister():
     unregister_keymaps()
 
     # delete handler
+    bpy.app.handlers.depsgraph_update_pre.remove(outliner.create_outliner_items)
     bpy.app.handlers.depsgraph_update_post.remove(update_properties)
     bpy.app.handlers.frame_change_post.remove(update_properties)
     bpy.app.handlers.load_post.remove(check_view_2D_3D)

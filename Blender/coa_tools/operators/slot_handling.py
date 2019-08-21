@@ -122,7 +122,6 @@ class COATOOLS_OT_CreateSlotObject(bpy.types.Operator):
         
         
         if self.keep_sprite_position:
-            print("test")
             for ob in objs:
                 slots = []
                 if ob.coa_tools.type == "MESH":
