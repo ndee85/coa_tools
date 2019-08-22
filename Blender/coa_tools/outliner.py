@@ -11,7 +11,8 @@ def select_outliner_object(self, context):
     if selected_item.entry_type in ["SPRITE", "OBJECT"] and not edit_mode_active:
         selected_object = context.view_layer.objects[selected_item.name]
         for obj in context.view_layer.objects:
-            obj.select_set(False)
+            if obj in sprite_object.children:
+                obj.select_set(False)
         for item in self.outliner:
             if item.selected:
                 bpy.data.objects[item.name].select_set(True)
@@ -261,20 +262,25 @@ def create_outliner_items(dummy):
     for item in outliner:
         outliner.remove(0)
 
+    sorted_sprites = []
     items = []
     for sprite_object in scene.objects:
         if "sprite_object" in sprite_object.coa_tools:
             items.append(sprite_object)
-            sorted_children = []
             for obj in sprite_object.children:
-                sorted_children.append(obj)
-            sorted_children.sort(key=lambda x: x.location.y, reverse=False)
-    items += sorted_children
+                if obj.type != "MESH":
+                    items.append(obj)
+            sorted_sprites = []
+            for obj in sprite_object.children:
+                if obj.type == "MESH":
+                    sorted_sprites.append(obj)
+            sorted_sprites.sort(key=lambda x: x.location.y, reverse=False)
+    items += sorted_sprites
 
     sprite_object = None
     global i
     i = -1
-    for obj in items:
+    for j,obj in enumerate(items):
         if "sprite_object" in obj.coa_tools:
             sprite_object = obj
         if (scene.coa_tools.outliner_filter_names in obj.name or sprite_object == obj) and (not scene.coa_tools.outliner_favorites or (scene.coa_tools.outliner_favorites and obj.coa_tools.favorite) or sprite_object == obj):
@@ -294,26 +300,27 @@ def create_outliner_items(dummy):
                 item["hide_select"] = obj.hide_select
                 item["favorite"] = obj.coa_tools.favorite
                 item["sprite_object_name"] = sprite_object.name
-
+                # if obj.type != "ARMATURE":
+                #     break
 
                 # retrieve bones
-                if obj.type == "ARMATURE" and sprite_object.coa_tools.show_children and ((scene.coa_tools.outliner_favorites and obj.coa_tools.favorite) or not scene.coa_tools.outliner_favorites):
+                if obj.type == "ARMATURE" and sprite_object.coa_tools.show_children and ((scene.coa_tools.outliner_favorites and sprite_object.coa_tools.favorite) or not scene.coa_tools.outliner_favorites):
                     i += 1
                     bone_item = outliner.add()
-                    bone_item["name"] = obj.name
+                    bone_item["name"] = sprite_object.name
                     bone_item["index"] = i
                     bone_item["entry_type"] = "BONE_PARENT"
                     bone_item["display_name"] = "Bones"
                     bone_item["sprite_object_name"] = sprite_object.name
-                    bone_item["hide"] = obj.hide_get()
-                    bone_item["hide_select"] = obj.hide_select
+                    bone_item["hide"] = sprite_object.hide_get()
+                    bone_item["hide_select"] = sprite_object.hide_select
                     bone_item["hierarchy_level"] = item["hierarchy_level"] + 3
 
                     if sprite_object.coa_tools.show_bones:
                         for bone in obj.data.bones:
                             if bone.parent == None:
                                 hierarchy_level = bone_item["hierarchy_level"]
-                                recursive_bone_iteration(scene, outliner, sprite_object, obj, item, bone, hierarchy_level)
+                                recursive_bone_iteration(scene, outliner, sprite_object, sprite_object, item, bone, hierarchy_level)
 
                 # retrieve slots
                 if obj.coa_tools.type == "SLOT" and obj.coa_tools.slot_show and not sprite_object.coa_tools.change_z_ordering:
