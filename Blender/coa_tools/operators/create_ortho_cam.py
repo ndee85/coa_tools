@@ -128,7 +128,6 @@ class COATOOLS_OT_AlignCamera(bpy.types.Operator):
     def execute(self, context):
         cam = context.active_object
         if cam.type == "CAMERA":
-            print(self.align)
             if self.align == "TOP_LEFT":
                 self.x_multiplier = -1
                 self.y_multiplier = 1
@@ -144,7 +143,6 @@ class COATOOLS_OT_AlignCamera(bpy.types.Operator):
                 self.y_multiplier = 1
                 self.offset_x = 0.5
                 self.offset_y = 0.5
-                print("baam")
             elif self.align == "CENTER_LEFT":
                 self.x_multiplier = -1
                 self.y_multiplier = -1

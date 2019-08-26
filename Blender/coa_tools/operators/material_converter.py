@@ -71,7 +71,6 @@ class COATOOLS_OT_ConvertMaterials(bpy.types.Operator):
                 
                 ### setup nodes
                 node_rgb.outputs[0].default_value[:3] = obj.coa_modulate_color
-                print(img)
                 node_texture.image = img
                 node_mix.blend_type = "MULTIPLY"
                 node_mix.inputs[0].default_value = 1.0
