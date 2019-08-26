@@ -134,14 +134,15 @@ class COATOOLS_PT_ObjectProperties(bpy.types.Panel):
         row.template_list("COATOOLS_UL_Outliner", "", scene.coa_tools, "outliner", scene.coa_tools, "outliner_index",
                           rows=10)
         row = col.row()
-        if sprite_object.coa_tools.edit_mesh:
-            row.prop(sprite_object.coa_tools, "edit_mesh", text="", toggle=True, icon="LOOP_BACK")
-        if sprite_object.coa_tools.edit_armature:
-            row.prop(sprite_object.coa_tools, "edit_armature", text="", toggle=True, icon="LOOP_BACK")
-        if sprite_object.coa_tools.edit_weights:
-            row.prop(sprite_object.coa_tools, "edit_weights", text="", toggle=True, icon="LOOP_BACK")
-        if sprite_object.coa_tools.edit_shapekey:
-            row.prop(sprite_object.coa_tools, "edit_shapekey", text="", toggle=True, icon="LOOP_BACK")
+        if sprite_object != None:
+            if sprite_object.coa_tools.edit_mesh:
+                row.prop(sprite_object.coa_tools, "edit_mesh", text="", toggle=True, icon="LOOP_BACK")
+            if sprite_object.coa_tools.edit_armature:
+                row.prop(sprite_object.coa_tools, "edit_armature", text="", toggle=True, icon="LOOP_BACK")
+            if sprite_object.coa_tools.edit_weights:
+                row.prop(sprite_object.coa_tools, "edit_weights", text="", toggle=True, icon="LOOP_BACK")
+            if sprite_object.coa_tools.edit_shapekey:
+                row.prop(sprite_object.coa_tools, "edit_shapekey", text="", toggle=True, icon="LOOP_BACK")
         ###
 
     def draw(self, context):

@@ -13,6 +13,27 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
     def poll(cls, context):
         return True
 
+
+    def convert_sprite_objects(self):
+        # converts empty sprite objects to armature sprite objects
+        converted_sprite_objects = []
+        for obj in bpy.data.objects:
+            obj_name = obj.name
+            if "sprite_object" in obj.coa_tools and obj.type != "ARMATURE" and obj not in converted_sprite_objects:
+                armature = None
+                for child in obj.children:
+                    if child.type == "ARMATURE":
+                        armature = child
+                        armature.coa_tools["sprite_object"] = True
+                        armature["coa_tools"] = obj["coa_tools"]
+                        break
+                for child in obj.children:
+                    if child != armature:
+                        child.parent = armature
+
+                bpy.data.objects.remove(obj)
+                armature.name = obj_name
+
     def convert_properties(self):
         # convert meshes
         for mesh in bpy.data.meshes:
@@ -88,12 +109,13 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
         for mesh in meshes:
             for material_name in mesh.materials.keys():
                 mat = mesh.materials[material_name]
+                print(material_name)
                 texture_path = os.path.join(texture_dir_path, material_name)
                 if os.path.isfile(texture_path):
                     bpy.data.images.load(texture_path, check_existing=True)
                     bpy.data.materials.remove(mat, do_unlink=True, do_id_user=True, do_ui_user=True)
-                mesh.materials.clear()
-                self.create_material(context, mesh, material_name)
+                    mesh.materials.clear()
+                    self.create_material(context, mesh, material_name)
 
     def convert_drivers(self, context):
         for obj in bpy.data.objects:
@@ -121,6 +143,7 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
         self.convert_properties()
         self.convert_materials(context)
         self.convert_drivers(context)
+        self.convert_sprite_objects()
         self.set_shading()
         context.scene.coa_tools.deprecated_data_found = False
         return {"FINISHED"}
