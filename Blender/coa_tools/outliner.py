@@ -25,6 +25,8 @@ def set_hide(self, value):
     if self.entry_type in ["OBJECT", "SPRITE", "BONE_PARENT"]:
         selected_object = bpy.context.view_layer.objects[self.name]
         selected_object.hide_set(value)
+        selected_object.hide_viewport = value
+        selected_object.hide_render = value
         self["hide"] = value
     elif self.entry_type in ["BONE"]:
         selected_object = bpy.context.view_layer.objects[self.name]
@@ -35,7 +37,7 @@ def set_hide(self, value):
 def get_hide(self):
     if self.entry_type in ["OBJECT", "SPRITE", "BONE_PARENT"]:
         selected_object = bpy.context.view_layer.objects[self.name]
-        return selected_object.hide_get()
+        return True if selected_object.hide_viewport or selected_object.hide_get() or selected_object.hide_render else False
     elif self.entry_type in ["BONE"]:
         selected_object = bpy.context.view_layer.objects[self.name]
         bone = selected_object.data.bones[self.display_name]
@@ -165,7 +167,7 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
                         row_right.prop(obj.coa_tools, "slot_show", text="", icon="TRIA_LEFT", emboss=False)
 
                 if obj != sprite_object:
-                    if not sprite_object.coa_tools.change_z_ordering:
+                    if sprite_object!= None and not sprite_object.coa_tools.change_z_ordering:
                         row_right.prop(item, "favorite", text="", icon=favorite_icon, emboss=False)
                         row_right.prop(item, "hide", text="", icon=hide_icon, emboss=False)
                         row_right.prop(item, "hide_select", text="", icon=hide_select_icon, emboss=False)
@@ -310,7 +312,7 @@ def create_outliner_items(dummy):
                 item["slot_type"] = obj.coa_tools.type
                 item["selected"] = obj.select_get()
                 item["active"] = (obj == active_object)
-                item["hide"] = obj.hide_get()
+                item["hide"] = True if (obj.hide_viewport or obj.hide_get() or obj.hide_render) else False
                 item["hide_select"] = obj.hide_select
                 item["favorite"] = obj.coa_tools.favorite
                 item["sprite_object_name"] = sprite_object.name
