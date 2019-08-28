@@ -20,6 +20,8 @@ Created by Andreas Esau
     
 import bpy
 from bpy.props import FloatProperty, IntProperty, BoolProperty, StringProperty, CollectionProperty, FloatVectorProperty, EnumProperty, IntVectorProperty
+
+from .. import outliner
 from .. functions import *
 
 class COATOOLS_OT_ChangeZOrdering(bpy.types.Operator):
@@ -29,50 +31,59 @@ class COATOOLS_OT_ChangeZOrdering(bpy.types.Operator):
     bl_options = {"REGISTER"}
     
     active_sprite: StringProperty()
-    all_sprites: StringProperty()
+    all_sprites_string: StringProperty()
     index: IntProperty()
     direction: StringProperty() ## UP - DOWN
-    
+
+    def __init__(self):
+        self.sprites = eval(self.all_sprites_string)
+
     @classmethod
     def poll(cls, context):
         return True
 
+    def get_sprite_index(self, active_sprite_name, mode="PREV"): # PREV, NEXT
+        for i, name in enumerate(self.sprites):
+            if name == active_sprite_name:
+                if mode == "LOWER":
+                    return max(min(len(self.sprites)-1, (i-1)), 0)
+                elif mode == "HIGHER":
+                    return max(min(len(self.sprites)-1, (i+1)), 0)
+        return -1
+
+
     def execute(self, context):
-        scene = context.scene
-        active_sprite = scene.objects[self.active_sprite]
-        
-        all_sprites = []
-        for name in eval(self.all_sprites):
-            all_sprites.append(scene.objects[name])
-            
-        if self.direction == "UP":
-            next_index = max(self.index - 1 , 0)
-        elif self.direction == "DOWN":
-            next_index = min(self.index + 1 , len(all_sprites)-1)
-               
-        next_sprite = all_sprites[next_index]
-        
-        if active_sprite.coa_tools.z_value == next_sprite.coa_tools.z_value:
-            for i,child in enumerate(all_sprites):
-                if child == active_sprite:
-                    child.coa_tools.z_value = child.coa_tools.z_value
-                if self.direction == "DOWN":
-                    if i > self.index:
-                        child.coa_tools.z_value -= 1
-                if self.direction == "UP":
-                    if i < self.index:
-                        child.coa_tools.z_value += 1
-                
-        
-        active_loc_y = active_sprite.location[1]
-        next_loy_y = next_sprite.location[1]
-        active_sprite.location[1] = next_loy_y
-        next_sprite.location[1] = active_loc_y
-        active_z = active_sprite.coa_tools.z_value
-        next_z = next_sprite.coa_tools.z_value
-        active_sprite.coa_tools.z_value = next_z
-        next_sprite.coa_tools.z_value = active_z
-        
+        outliner_index = int(context.scene.coa_tools.outliner_index)
+        active_object = bpy.data.objects[context.active_object.name] if context.active_object != None else None
+        active_sprite_name = context.scene.coa_tools.outliner[self.index].display_name
+        lower_sprite_name = self.sprites[self.get_sprite_index(active_sprite_name, "LOWER")]
+        higher_sprite_name = self.sprites[self.get_sprite_index(active_sprite_name, "HIGHER")]
+
+        active_sprite = bpy.data.objects[active_sprite_name]
+        lower_sprite = bpy.data.objects[lower_sprite_name]
+        higher_sprite = bpy.data.objects[higher_sprite_name]
+
+        active_sprite_z = int(active_sprite.coa_tools.z_value)
+        lower_sprite_z = int(lower_sprite.coa_tools.z_value)
+        higher_sprite_z = int(higher_sprite.coa_tools.z_value)
+
+        # print(self.sprites)
+        if self.direction == "DOWN":
+            # Todo
+            if active_sprite_name != lower_sprite_name:
+                active_sprite.coa_tools.z_value = lower_sprite_z
+                lower_sprite.coa_tools.z_value = active_sprite_z
+        elif self.direction == "UP":
+            # Todo
+            if active_sprite_name != higher_sprite_name:
+                active_sprite.coa_tools.z_value = higher_sprite_z
+                higher_sprite.coa_tools.z_value = active_sprite_z
+
+        context.view_layer.objects.active = active_sprite
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        context.view_layer.objects.active = active_object
+        # context.scene.coa_tools["outliner_index"] = outliner_index
         return {"FINISHED"}
         
 

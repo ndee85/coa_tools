@@ -174,20 +174,24 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
                     else:
                         if obj.type == "MESH":
                             children_names = []
+                            children = []
                             for child in sprite_object.children:
                                 if child.type == "MESH":
-                                    children_names.append(child.name)
+                                    children.append(child)
+                            children.sort(key=lambda x: x.location.y, reverse=False)
+                            for child in children:
+                                children_names.append(child.name)
 
                             op = row_right.operator("coa_tools.change_z_ordering", text="", icon="TRIA_DOWN")
-                            op.index = i
-                            op.direction = "DOWN"
-                            op.active_sprite = item.name
-                            op.all_sprites = str(children_names)
-                            op = row_right.operator("coa_tools.change_z_ordering", text="", icon="TRIA_UP")
-                            op.index = i
+                            op.index = item.index
                             op.direction = "UP"
-                            op.active_sprite = item.name
-                            op.all_sprites = str(children_names)
+                            op.active_sprite = item.display_name
+                            op.all_sprites_string = str(children_names)
+                            op = row_right.operator("coa_tools.change_z_ordering", text="", icon="TRIA_UP")
+                            op.index = item.index
+                            op.direction = "DOWN"
+                            op.active_sprite = item.display_name
+                            op.all_sprites_string = str(children_names)
                 if obj.type == "ARMATURE":
                     pose_icon = "POSE_HLT"
                     if obj.mode == "OBJECT":
@@ -278,7 +282,7 @@ def create_outliner_items(dummy):
         if "sprite_object" in sprite_object.coa_tools:
             items.append(sprite_object)
             for obj in sprite_object.children:
-                if obj.type != "MESH":
+                if obj.type != "MESH" and not sprite_object.coa_tools.change_z_ordering:
                     items.append(obj)
             sorted_sprites = []
             for obj in sprite_object.children:
@@ -319,37 +323,38 @@ def create_outliner_items(dummy):
                 # if obj.type != "ARMATURE":
                 #     break
 
-                # retrieve bones
-                if obj.type == "ARMATURE" and sprite_object.coa_tools.show_children and ((scene.coa_tools.outliner_favorites and sprite_object.coa_tools.favorite) or not scene.coa_tools.outliner_favorites):
-                    i += 1
-                    bone_item = outliner.add()
-                    bone_item["name"] = sprite_object.name
-                    bone_item["index"] = i
-                    bone_item["entry_type"] = "BONE_PARENT"
-                    bone_item["display_name"] = "Bones"
-                    bone_item["sprite_object_name"] = sprite_object.name
-                    bone_item["hide"] = sprite_object.hide_get()
-                    bone_item["hide_select"] = sprite_object.hide_select
-                    bone_item["hierarchy_level"] = item["hierarchy_level"] + 3
-
-                    if sprite_object.coa_tools.show_bones:
-                        for bone in obj.data.bones:
-                            if bone.parent == None:
-                                hierarchy_level = bone_item["hierarchy_level"]
-                                recursive_bone_iteration(scene, outliner, sprite_object, sprite_object, item, bone, hierarchy_level)
-
-                # retrieve slots
-                if obj.coa_tools.type == "SLOT" and obj.coa_tools.slot_show and not sprite_object.coa_tools.change_z_ordering:
-                    for slot in obj.coa_tools.slot:
+                if not sprite_object.coa_tools.change_z_ordering:
+                    # retrieve bones
+                    if obj.type == "ARMATURE" and sprite_object.coa_tools.show_children and ((scene.coa_tools.outliner_favorites and sprite_object.coa_tools.favorite) or not scene.coa_tools.outliner_favorites):
                         i += 1
-                        slot_item = outliner.add()
-                        slot_item["name"] = obj.name
-                        slot_item["display_name"] = slot.mesh.name
-                        slot_item["index"] = i
-                        slot_item["entry_type"] = "SLOT"
-                        slot_item["hierarchy_level"] = item["hierarchy_level"] + 3
-                        slot_item["slot_index"] = slot.index
-                        slot_item["sprite_object_name"] = sprite_object.name
+                        bone_item = outliner.add()
+                        bone_item["name"] = sprite_object.name
+                        bone_item["index"] = i
+                        bone_item["entry_type"] = "BONE_PARENT"
+                        bone_item["display_name"] = "Bones"
+                        bone_item["sprite_object_name"] = sprite_object.name
+                        bone_item["hide"] = sprite_object.hide_get()
+                        bone_item["hide_select"] = sprite_object.hide_select
+                        bone_item["hierarchy_level"] = item["hierarchy_level"] + 3
+
+                        if sprite_object.coa_tools.show_bones:
+                            for bone in obj.data.bones:
+                                if bone.parent == None:
+                                    hierarchy_level = bone_item["hierarchy_level"]
+                                    recursive_bone_iteration(scene, outliner, sprite_object, sprite_object, item, bone, hierarchy_level)
+
+                    # retrieve slots
+                    if obj.coa_tools.type == "SLOT" and obj.coa_tools.slot_show and not sprite_object.coa_tools.change_z_ordering:
+                        for slot in obj.coa_tools.slot:
+                            i += 1
+                            slot_item = outliner.add()
+                            slot_item["name"] = obj.name
+                            slot_item["display_name"] = slot.mesh.name
+                            slot_item["index"] = i
+                            slot_item["entry_type"] = "SLOT"
+                            slot_item["hierarchy_level"] = item["hierarchy_level"] + 3
+                            slot_item["slot_index"] = slot.index
+                            slot_item["sprite_object_name"] = sprite_object.name
 
     if active_object != None and active_object.name in outliner:
         item = outliner[active_object.name]
