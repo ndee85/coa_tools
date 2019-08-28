@@ -42,48 +42,35 @@ class COATOOLS_OT_ChangeZOrdering(bpy.types.Operator):
     def poll(cls, context):
         return True
 
-    def get_sprite_index(self, active_sprite_name, mode="PREV"): # PREV, NEXT
+    def get_sprite_index(self, active_sprite_name):
         for i, name in enumerate(self.sprites):
             if name == active_sprite_name:
-                if mode == "LOWER":
-                    return max(min(len(self.sprites)-1, (i-1)), 0)
-                elif mode == "HIGHER":
-                    return max(min(len(self.sprites)-1, (i+1)), 0)
+                return i
         return -1
 
-
     def execute(self, context):
-        outliner_index = int(context.scene.coa_tools.outliner_index)
         active_object = bpy.data.objects[context.active_object.name] if context.active_object != None else None
         active_sprite_name = context.scene.coa_tools.outliner[self.index].display_name
-        lower_sprite_name = self.sprites[self.get_sprite_index(active_sprite_name, "LOWER")]
-        higher_sprite_name = self.sprites[self.get_sprite_index(active_sprite_name, "HIGHER")]
+
+        active_sprite_index = self.get_sprite_index(active_sprite_name)
+        lower_sprite_index = (active_sprite_index-1) % len(self.sprites)
+        higher_sprite_index = (active_sprite_index+1) % len(self.sprites)
 
         active_sprite = bpy.data.objects[active_sprite_name]
-        lower_sprite = bpy.data.objects[lower_sprite_name]
-        higher_sprite = bpy.data.objects[higher_sprite_name]
 
-        active_sprite_z = int(active_sprite.coa_tools.z_value)
-        lower_sprite_z = int(lower_sprite.coa_tools.z_value)
-        higher_sprite_z = int(higher_sprite.coa_tools.z_value)
-
-        # print(self.sprites)
+        sorted_sprites = self.sprites[:]
         if self.direction == "DOWN":
-            # Todo
-            if active_sprite_name != lower_sprite_name:
-                active_sprite.coa_tools.z_value = lower_sprite_z
-                lower_sprite.coa_tools.z_value = active_sprite_z
+            sorted_sprites.insert(lower_sprite_index, sorted_sprites.pop(active_sprite_index))
         elif self.direction == "UP":
-            # Todo
-            if active_sprite_name != higher_sprite_name:
-                active_sprite.coa_tools.z_value = higher_sprite_z
-                higher_sprite.coa_tools.z_value = active_sprite_z
+            sorted_sprites.insert(higher_sprite_index, sorted_sprites.pop(active_sprite_index))
+        for i, sprite_name in enumerate(sorted_sprites):
+            sprite = bpy.data.objects[sprite_name]
+            sprite.coa_tools.z_value = len(sorted_sprites) - i - 1
 
         context.view_layer.objects.active = active_sprite
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.object.mode_set(mode="OBJECT")
         context.view_layer.objects.active = active_object
-        # context.scene.coa_tools["outliner_index"] = outliner_index
         return {"FINISHED"}
         
 
