@@ -350,6 +350,12 @@ class AnimationCollections(bpy.types.PropertyGroup):
     event_index: IntProperty(default=-1, max=-1)
 
 class ObjectProperties(bpy.types.PropertyGroup):
+    def get_selected_shapekey(self):
+        return self.id_data.active_shape_key_index
+    def set_selected_shapekey(self, value):
+        self.id_data.active_shape_key_index = value
+        self["selected_shapekey"] = value
+
     anim_collections: bpy.props.CollectionProperty(type=AnimationCollections)
     uv_default_state: bpy.props.CollectionProperty(type=UVData)
     slot: bpy.props.CollectionProperty(type=SlotData)
@@ -388,8 +394,7 @@ class ObjectProperties(bpy.types.PropertyGroup):
     slot_reset_index: bpy.props.IntProperty(default=0, min=0)
     slot_show: bpy.props.BoolProperty(default=False)
     change_z_ordering: bpy.props.BoolProperty(default=False)
-    selected_shapekey: bpy.props.EnumProperty(items=get_shapekeys, update=select_shapekey,
-                                                                   name="Active Shapkey")
+    selected_shapekey: bpy.props.EnumProperty(items=get_shapekeys, update=select_shapekey, get=get_selected_shapekey, set=set_selected_shapekey, name="Active Shapkey")
 
     edit_mode: EnumProperty(name="Edit Mode", items=(
         ("OBJECT", "Object", "Object"), ("MESH", "Mesh", "Mesh"), ("ARMATURE", "Armature", "Armature"),
