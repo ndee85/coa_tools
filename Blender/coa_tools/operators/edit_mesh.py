@@ -917,6 +917,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
         return 'PASS_THROUGH'
 
     def modal(self, context, event):
+        context.active_object.active_shape_key_index = 0
         if self.suspend_area_fullscreen(context, event) == "SUSPEND":
             return {'RUNNING_MODAL'}
 
