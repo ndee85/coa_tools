@@ -255,7 +255,7 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
                     op.ob_name = item.name
                     op.bone_name = item.display_name
 
-                    if len(bone.children) > 0:
+                    if len(bone.children) > 0 and context.scene.coa_tools.outliner_filter_names == "":
                         if bone.coa_tools.show_children:
                             row_right.prop(bone.coa_tools, "show_children", text="", icon="TRIA_DOWN", emboss=False)
                         else:
@@ -297,7 +297,7 @@ def create_outliner_items(dummy):
     for j, obj in enumerate(items):
         if "sprite_object" in obj.coa_tools:
             sprite_object = obj
-        if (scene.coa_tools.outliner_filter_names in obj.name or sprite_object == obj) and (not scene.coa_tools.outliner_favorites or (scene.coa_tools.outliner_favorites and obj.coa_tools.favorite) or sprite_object == obj):
+        if (substring_found(scene.coa_tools.outliner_filter_names, obj.name) or sprite_object == obj) and (not scene.coa_tools.outliner_favorites or (scene.coa_tools.outliner_favorites and obj.coa_tools.favorite) or sprite_object == obj):
             if "sprite_object" in obj.coa_tools and obj.type == "EMPTY":
                 i += 1
                 item = outliner.add()
@@ -325,6 +325,7 @@ def create_outliner_items(dummy):
 
                 if not sprite_object.coa_tools.change_z_ordering:
                     # retrieve bones
+                    search_active = context.scene.coa_tools.outliner_filter_names != ""
                     if obj.type == "ARMATURE" and sprite_object.coa_tools.show_children and ((scene.coa_tools.outliner_favorites and sprite_object.coa_tools.favorite) or not scene.coa_tools.outliner_favorites):
                         i += 1
                         bone_item = outliner.add()
@@ -337,9 +338,10 @@ def create_outliner_items(dummy):
                         bone_item["hide_select"] = sprite_object.hide_select
                         bone_item["hierarchy_level"] = item["hierarchy_level"] + 3
 
-                        if sprite_object.coa_tools.show_bones:
+                        if sprite_object.coa_tools.show_bones or search_active:
                             for bone in obj.data.bones:
-                                if bone.parent == None:
+                                bone_name_found = substring_found(context.scene.coa_tools.outliner_filter_names, bone.name)
+                                if (bone.parent == None and not search_active) or (search_active and bone_name_found):
                                     hierarchy_level = bone_item["hierarchy_level"]
                                     recursive_bone_iteration(scene, outliner, sprite_object, sprite_object, item, bone, hierarchy_level)
 
@@ -365,11 +367,14 @@ def create_outliner_items(dummy):
                     context.scene.coa_tools.outliner_index = item.index
                     break
 
+def substring_found(query, string):
+    return query.lower() in string.lower()
 
 def recursive_bone_iteration(scene, outliner, sprite_object, obj, parent_item, bone, hierarchy_level):
     global i
 
-    if (scene.coa_tools.outliner_favorites and bone.coa_tools.favorite) or not scene.coa_tools.outliner_favorites:
+    search_active = scene.coa_tools.outliner_filter_names != ""
+    if ((scene.coa_tools.outliner_favorites and bone.coa_tools.favorite) or not scene.coa_tools.outliner_favorites):# or (search_active and bone_name_found):
         i += 1
         bone_item = outliner.add()
         bone_item["name"] = obj.name
@@ -381,6 +386,7 @@ def recursive_bone_iteration(scene, outliner, sprite_object, obj, parent_item, b
         bone_item["hide_select"] = bone.hide_select
         bone_item["selected"] = bone.select
         bone_item["hierarchy_level"] = parent_item["hierarchy_level"] + 1 + hierarchy_level
-        for child in bone.children:
-            if bone.coa_tools.show_children:
-                recursive_bone_iteration(scene, outliner, sprite_object, obj, parent_item, child, hierarchy_level + 1)
+        if not search_active:
+            for child in bone.children:
+                if bone.coa_tools.show_children:
+                    recursive_bone_iteration(scene, outliner, sprite_object, obj, parent_item, child, hierarchy_level + 1)
