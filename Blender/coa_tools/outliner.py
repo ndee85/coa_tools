@@ -145,8 +145,11 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
             elif item.object_type == "LIGHT":
                 object_icon = "LIGHT"
 
-            # row_left.label(text="", icon=selected_icon)
-            row_left.prop(item, "selected", text="", icon=selected_icon)
+            if item.entry_type not in ["SLOT","BONE_PARENT"]:
+                # row_left.label(text="", icon=selected_icon)
+                row_left.prop(item, "selected", text="", icon=selected_icon)
+            else:
+                row_left.label(text="", icon="NONE")
             for i in range(item.hierarchy_level):
                 row_left.separator()
 
