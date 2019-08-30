@@ -35,6 +35,7 @@ import traceback
 import gpu
 from gpu_extras.batch import batch_for_shader
 from .. import constants as CONSTANTS
+import pdb
 
 
 ######################################################################################################################################### Grid Fill
@@ -917,7 +918,8 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
         return 'PASS_THROUGH'
 
     def modal(self, context, event):
-        context.active_object.active_shape_key_index = 0
+        if context.active_object.active_shape_key_index != 0:
+            context.active_object.active_shape_key_index = 0
         if self.suspend_area_fullscreen(context, event) == "SUSPEND":
             return {'RUNNING_MODAL'}
 
@@ -962,7 +964,6 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                 return {'PASS_THROUGH'}
             
             if self.in_view_3d and context.active_object != None and self.type not in ["MIDDLEMOUSE"] and self.sprite_object.coa_tools.edit_mesh and click_button not in [select_button]:
-        
                 ### set click drag    
                 if self.type == click_button:
                     self.click_drag = True
