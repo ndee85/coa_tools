@@ -542,7 +542,8 @@ class COATOOLS_UL_EventCollection(bpy.types.UIList):
 ######################################################################################################################################### Select Child Operator
 class COATOOLS_OT_SelectChild(bpy.types.Operator):
     bl_idname = "coa_tools.select_child"
-    bl_label = "select_child"
+    bl_label = "Select Child"
+    bl_description = "Select Outliner Item"
 
     ob_name: StringProperty()
     outliner_index: IntProperty(default=0)
