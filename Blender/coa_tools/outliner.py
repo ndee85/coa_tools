@@ -135,23 +135,24 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
             favorite_icon = "SOLO_ON" if item.favorite else "SOLO_OFF"
             show_children_icon = "DISCLOSURE_TRI_RIGHT" if obj != None and not obj.coa_tools.show_children else "DISCLOSURE_TRI_DOWN"
 
-            icon = "NONE"
+            object_icon = "NONE"
             if item.object_type == "ARMATURE":
-                icon = "ARMATURE_DATA"
+                object_icon = "ARMATURE_DATA"
             elif item.object_type == "MESH":
-                icon = "TEXTURE"
+                object_icon = "TEXTURE"
             elif item.object_type == "CAMERA":
-                icon = "VIEW_CAMERA"
+                object_icon = "VIEW_CAMERA"
             elif item.object_type == "LIGHT":
-                icon = "LIGHT"
+                object_icon = "LIGHT"
 
+            # row_left.label(text="", icon=selected_icon)
+            row_left.prop(item, "selected", text="", icon=selected_icon)
             for i in range(item.hierarchy_level):
                 row_left.separator()
 
-
             if item.entry_type in ["SPRITE","OBJECT"]:
-                row_left.label(text="", icon=selected_icon)
-                row_left.label(text="", icon=icon)
+                # row_left.label(text="", icon=selected_icon)
+                row_left.label(text="", icon=object_icon)
                 if item.object_type == "ARMATURE":
                     row_left.prop(obj.coa_tools, "show_children", text="", emboss=False, icon=show_children_icon)
 
@@ -232,19 +233,20 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
             elif item.entry_type == "BONE_PARENT":
                 obj = bpy.data.objects[item.name]
                 row_left.label(text="", icon="BONE_DATA")
+                row_left.label(text=item.display_name)
+
                 if obj.coa_tools.show_bones:
                     row_right.prop(obj.coa_tools, "show_bones", text="", icon="TRIA_DOWN", emboss=False)
                 else:
                     row_right.prop(obj.coa_tools, "show_bones", text="", icon="TRIA_LEFT", emboss=False)
 
-                row_left.label(text=item.display_name)
                 row_right.prop(item, "favorite", text="", icon=favorite_icon, emboss=False)
                 row_right.prop(item, "hide", text="", icon=hide_icon, emboss=False)
                 row_right.prop(item, "hide_select", text="", icon=hide_select_icon, emboss=False)
             elif item.entry_type == "BONE":
                 obj = bpy.data.objects[item.name]
                 if obj.type == "ARMATURE":
-                    row_left.label(text="", icon=selected_icon)
+                    # row_left.label(text="", icon=selected_icon)
                     bone = obj.data.bones[item.display_name]
                     row_left.label(text="", icon="BONE_DATA")
 
@@ -336,7 +338,7 @@ def create_outliner_items(dummy):
                         bone_item["sprite_object_name"] = sprite_object.name
                         bone_item["hide"] = sprite_object.hide_get()
                         bone_item["hide_select"] = sprite_object.hide_select
-                        bone_item["hierarchy_level"] = item["hierarchy_level"] + 3
+                        bone_item["hierarchy_level"] = 1
 
                         if sprite_object.coa_tools.show_bones or search_active:
                             for bone in obj.data.bones:
@@ -354,7 +356,7 @@ def create_outliner_items(dummy):
                             slot_item["display_name"] = slot.mesh.name
                             slot_item["index"] = i
                             slot_item["entry_type"] = "SLOT"
-                            slot_item["hierarchy_level"] = item["hierarchy_level"] + 3
+                            slot_item["hierarchy_level"] = item["hierarchy_level"] + 1
                             slot_item["slot_index"] = slot.index
                             slot_item["sprite_object_name"] = sprite_object.name
 
