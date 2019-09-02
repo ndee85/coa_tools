@@ -1151,6 +1151,10 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
         if context.active_object != None:
             bpy.ops.object.mode_set(mode="EDIT")
         if self.mode == "DRAW_BONE_SHAPE":
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.normals_make_consistent()
+            bpy.ops.mesh.select_all(action='DESELECT')
+
             self.set_bone_shape_color_and_wireframe(context,self.bone_shape)
 
         bpy.context.window.cursor_set("CROSSHAIR")
