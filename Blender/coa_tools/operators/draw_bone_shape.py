@@ -66,15 +66,18 @@ class COATOOLS_OT_DrawBoneShape(bpy.types.Operator):
         
         
         self.bone_shapes = "NEW_SHAPE"
-        shape_name = context.active_pose_bone.name + "_custom_shape"
-        if context.active_object.type == "ARMATURE" and (context.active_pose_bone.custom_shape != None or shape_name in bpy.data.objects):
-            shape_name = context.active_pose_bone.custom_shape.name if context.active_pose_bone.custom_shape != None else context.active_pose_bone.name + "_custom_shape"
-            print(shape_name)
-            self.bone_shapes = shape_name
+        if context.active_pose_bone != None:
+            shape_name = context.active_pose_bone.name + "_custom_shape"
+            if context.active_object.type == "ARMATURE" and (context.active_pose_bone.custom_shape != None or shape_name in bpy.data.objects):
+                shape_name = context.active_pose_bone.custom_shape.name if context.active_pose_bone.custom_shape != None else context.active_pose_bone.name + "_custom_shape"
+                self.bone_shapes = shape_name
         
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self)
-    
+            wm = context.window_manager
+            return wm.invoke_props_dialog(self)
+        else:
+            self.report({'WARNING'}, "Select Bone in Pose Mode.")
+        return {'FINISHED'}
+
     def execute(self, context):
         if context.active_object.type == "ARMATURE" and context.active_object.mode == "POSE":
             if self.bone_shapes == "NEW_SHAPE":
