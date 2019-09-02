@@ -694,7 +694,6 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                         self.new_added_edges.append(new_edge)
                     bm.select_history = [new_vert]
                     new_vert.select = True
-                    self.first_added_vert = Vector(new_vert.co)
                     self.selected_vert_coord = obj_matrix @ new_vert.co
                     try:
                         pass
@@ -711,7 +710,6 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                     
         else:
             new_vert = bm.verts.new(obj_matrix.inverted() @ snapped_pos)
-            self.first_added_vert = Vector(new_vert.co)
                 
             bmesh.update_edit_mesh(obj.data)
             
@@ -1036,7 +1034,8 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                     return{'RUNNING_MODAL'}
                     
                 if (event.value == 'RELEASE' and event.type == 'MOUSEMOVE'):
-                    self.mouse_press = False    
+                    self.mouse_press = False
+
                 
                 
                 self.cur_distance = (self.mouse_pos_3d - self.cursor_pos_hist).magnitude
@@ -1074,16 +1073,6 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                     self.selected_vert_coord = None
                     self.contour_length = 0
                     self.delete_geometry(context,bm,self.mouse_pos_3d)
-                if self.contour_length == 1 and self.type in ["ESC"]:
-                    bm = bmesh.from_edit_mesh(context.active_object.data)
-                    if self.first_added_vert != None:
-                        for vert in bm.verts:
-                            if vert.co == self.first_added_vert:
-                                self.first_added_vert = None
-                                bmesh.ops.dissolve_verts(bm,verts=[vert])
-                                bmesh.update_edit_mesh(obj.data)
-                                break
-                
                 ### pick edge length
                 if self.shift and self.point_type == "EDGE":
                     bpy.context.window.cursor_set("EYEDROPPER")
