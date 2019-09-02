@@ -613,10 +613,14 @@ class COATOOLS_OT_SelectChild(bpy.types.Operator):
         for item in outliner:
             if item.index in index_range:
                 if item.object_type in ["MESH", "ARMATURE"]:
-                    bpy.data.objects[item.name].select_set(True)
+                    if item.entry_type in ["SPRITE","OBJECT"]:
+                        bpy.data.objects[item.display_name].select_set(True)
+                        if item.index == self.outliner_index:
+                            context.view_layer.objects.active = bpy.data.objects[item.name]
+                elif item.entry_type in ["BONE"]:
+                    self.armature.data.bones[item.display_name].select = True
                     if item.index == self.outliner_index:
-                        context.view_layer.objects.active = bpy.data.objects[item.name]
-
+                        self.armature.data.bones.active = self.armature.data.bones[item.display_name]
     def invoke(self, context, event):
         self.sprite_object = functions.get_sprite_object(context.active_object)
         self.armature = functions.get_armature(self.sprite_object)
