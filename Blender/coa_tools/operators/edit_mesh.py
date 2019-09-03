@@ -1349,6 +1349,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
         wm = context.window_manager
         
         if self.mode == "EDIT_MESH":
+            self.texture_preview_object.select_set(True)
             functions.set_local_view(True)
             self.texture_preview_object.select_set(False)
         self.prev_coa_view = str(context.scene.coa_tools.view)
