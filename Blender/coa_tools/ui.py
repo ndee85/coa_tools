@@ -404,6 +404,8 @@ class COATOOLS_PT_Tools(bpy.types.Panel):
 
                     row = layout.row()
                     row.operator("coa_tools.change_alpha_mode", text="Change Alpha Mode", icon="SHADING_RENDERED")
+                    row = layout.row()
+                    row.operator("coa_tools.change_texture_interpolation_mode", text="Change Texture Mode", icon="NODE_TEXTURE")
 
                     if functions.operator_exists("object.create_driver_constraint") and len(context.selected_objects) > 1:
                         row = layout.row()

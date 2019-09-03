@@ -59,3 +59,31 @@ class COATOOLS_OT_ChangeAlphaMode(bpy.types.Operator):
     def invoke(self, context, event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
+
+
+class COATOOLS_OT_ChangeTextureInterpolationMode(bpy.types.Operator):
+    bl_idname = "coa_tools.change_texture_interpolation_mode"
+    bl_label = "Change Texture Interpolation Mode"
+    bl_description = ""
+    bl_options = {"REGISTER"}
+
+    items = (("Linear","Linear","Linear"),("Closest","Closest","Closest"),("Cubic","Cubic","Cubic"),("Smart","Smart","Smart"))
+    interpolation_method: EnumProperty(name="Interpolation Method", items=items)
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        sprite_object = functions.get_sprite_object(context.active_object)
+        for sprite in sprite_object.children:
+            if sprite.type == "MESH":
+                for mat in sprite.data.materials:
+                    for node in mat.node_tree.nodes:
+                        if node.type == "TEX_IMAGE":
+                            node.interpolation = self.interpolation_method
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)

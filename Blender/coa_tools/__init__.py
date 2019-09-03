@@ -226,6 +226,7 @@ classes = (
     version_converter.COATOOLS_OT_VersionConverter,
 
     change_alpha_mode.COATOOLS_OT_ChangeAlphaMode,
+    change_alpha_mode.COATOOLS_OT_ChangeTextureInterpolationMode,
 
     # exporter
     export_dragonbones.COATOOLS_OT_DragonBonesExport,
