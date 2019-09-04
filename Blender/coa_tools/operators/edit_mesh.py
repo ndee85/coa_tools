@@ -1141,6 +1141,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="EDIT")
         if self.mode == "DRAW_BONE_SHAPE":
             bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
             bpy.ops.mesh.normals_make_consistent()
             bpy.ops.mesh.select_all(action='DESELECT')
 
