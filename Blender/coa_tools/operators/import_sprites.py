@@ -512,9 +512,10 @@ class COATOOLS_OT_ReImportSprite(bpy.types.Operator, ImportHelper):
                 obj = bpy.data.objects[self.name]
                 bpy.context.scene.view_layers[0].objects.active = obj
             mat = obj.active_material
-            for node in mat.node_tree.nodes:
-                if node.label == "COA Material":
-                    node.inputs["Texture Color"].links[0].from_node.image = img
+            if mat.node_tree != None:
+                for node in mat.node_tree.nodes:
+                    if node.label == "COA Material":
+                        node.inputs["Texture Color"].links[0].from_node.image = img
 
             img_dimension = img.size
             
