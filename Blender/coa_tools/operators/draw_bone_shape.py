@@ -63,8 +63,8 @@ class COATOOLS_OT_DrawBoneShape(bpy.types.Operator):
         row.prop(self,"bone_shapes")
     
     def invoke(self,context,event):
-        
-        
+
+
         self.bone_shapes = "NEW_SHAPE"
         if context.active_pose_bone != None:
             shape_name = context.active_pose_bone.name + "_custom_shape"

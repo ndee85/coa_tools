@@ -109,10 +109,13 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
         for mesh in meshes:
             for material_name in mesh.materials.keys():
                 mat = mesh.materials[material_name]
-                print(material_name)
                 texture_path = os.path.join(texture_dir_path, material_name)
                 if os.path.isfile(texture_path):
                     bpy.data.images.load(texture_path, check_existing=True)
+                    bpy.data.materials.remove(mat, do_unlink=True, do_id_user=True, do_ui_user=True)
+                    mesh.materials.clear()
+                    self.create_material(context, mesh, material_name)
+                elif material_name in bpy.data.images:
                     bpy.data.materials.remove(mat, do_unlink=True, do_id_user=True, do_ui_user=True)
                     mesh.materials.clear()
                     self.create_material(context, mesh, material_name)
