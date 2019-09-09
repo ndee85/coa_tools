@@ -149,7 +149,7 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         sprites = []
         sprite_object_children = get_children(context, self.sprite_object, [])
         for child in sprite_object_children:
-            if child.type == "MESH":
+            if child.type == "MESH" and child.visible_get():
                 sprite = Sprite(child)
                 if len(sprite.object.data.vertices) > 3:
                     sprites.append(sprite)
@@ -406,7 +406,7 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
                     bottom = min(bottom, val)
         height = top - bottom
         width = left - right
-        return {"width":width, "height":height}
+        return {"width": width, "height": height}
 
     def create_mesh_data(self, context, merged_atlas_obj):
         points = []
