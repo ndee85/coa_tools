@@ -136,6 +136,11 @@ class COATOOLS_OT_CreateMaterialGroup(bpy.types.Operator):
         group_tree.links.new(alpha_node.outputs[0], principled_node.inputs["Alpha"])
         group_tree.links.new(principled_node.outputs["BSDF"], output_node.inputs["BSDF"])
 
+        # setup principled node
+        principled_node.inputs["Specular"].default_value = 0
+        principled_node.inputs["Roughness"].default_value = 0
+        principled_node.inputs["Clearcoat Roughness"].default_value = 0
+
         # position nodes
         input_node.location = [0, 0]
         modulate_node.location = [180, 0]
