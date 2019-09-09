@@ -148,6 +148,7 @@ classes = (
 
     #operator
     create_sprite_object.COATOOLS_OT_CreateSpriteObject,
+    create_sprite_object.COATOOLS_OT_DefineSpriteObject,
     import_sprites.JsonImportData,
     import_sprites.COATOOLS_OT_CreateMaterialGroup,
     import_sprites.COATOOLS_OT_ImportSprite,

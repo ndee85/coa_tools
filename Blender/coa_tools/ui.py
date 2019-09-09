@@ -383,6 +383,9 @@ class COATOOLS_PT_Tools(bpy.types.Panel):
         if obj == None or (obj != None and obj.mode not in ["EDIT", "WEIGHT_PAINT", "SCULPT"]):
             row = layout.row(align=True)
             row.operator("coa_tools.create_sprite_object", text="Create new Sprite Object", icon="TEXTURE_DATA")
+        if obj != None and obj.type == "ARMATURE" and "sprite_object" not in obj.coa_tools:
+            row = layout.row(align=True)
+            row.operator("coa_tools.define_sprite_object", text="Define as Sprite Object", icon="TEXTURE_DATA")
 
         if sprite_object != None:
             if obj != None and obj.mode in ["OBJECT", "SCULPT", "POSE"]:
