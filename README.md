@@ -68,7 +68,7 @@ The coatools_exporter.py should be copied to your GIMP plug-ins folder which is 
 - Linux: /home/YOU/.gimp2.8/plug-ins/
 - Windows: C:\Users\YOU\.gimp2.8\plug-ins
 
-It should show up unde Files>Export to CoaTools... after your restart GIMP
+It should show up under Files>Export to CoaTools... after your restart GIMP
 
 
 ### Blender Addon:
@@ -76,7 +76,6 @@ Zip the coa_folder.
 Go to File -> User Preferences -> Add-ons and click the “Install from file...” button.
 This will install and enable the Addon for Blender. Don’t forget to save the user preferences, otherwise the addon will not be activated after restart.
 
-<a href="http://misc.artbyndee.de/coa_tools_installation.gif"><img src="http://misc.artbyndee.de/coa_tools_installation.gif" width="250" /></a>
 
 ### Godot Importer:
 Notice, this importer will only run with current godot 2.1 dev builds. 
