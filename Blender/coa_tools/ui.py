@@ -232,11 +232,11 @@ class COATOOLS_PT_ObjectProperties(bpy.types.Panel):
                     row.prop(obj.coa_tools,'slot_index',text="Slot Index")
                     op = row.operator("coa_tools.select_frame_thumb",text="",icon="IMAGE_RGB")
                     op = row.operator("coa_tools.add_keyframe",text="",icon="KEYTYPE_MOVING_HOLD_VEC")
-                    op.prop_name = "coa_slot_index"
+                    op.prop_name = "coa_tools.slot_index"
                     op.add_keyframe = True
                     op.default_interpolation = "CONSTANT"
                     op = row.operator("coa_tools.add_keyframe",text="",icon="HANDLETYPE_ALIGNED_VEC")
-                    op.prop_name = "coa_slot_index"
+                    op.prop_name = "coa_tools.slot_index"
                     op.add_keyframe = False
 
             if obj != None and obj.type == "MESH" and obj.mode == "OBJECT":
