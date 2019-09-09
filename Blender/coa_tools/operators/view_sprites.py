@@ -68,8 +68,9 @@ class COATOOLS_OT_ChangeZOrdering(bpy.types.Operator):
             sprite.coa_tools.z_value = len(sorted_sprites) - i - 1
 
         context.view_layer.objects.active = active_sprite
-        bpy.ops.object.mode_set(mode="EDIT")
-        bpy.ops.object.mode_set(mode="OBJECT")
+        if context.view_layer.objects.active.visible_get():
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.object.mode_set(mode="OBJECT")
         context.view_layer.objects.active = active_object
         return {"FINISHED"}
         
