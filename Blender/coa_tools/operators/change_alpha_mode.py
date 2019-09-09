@@ -79,9 +79,10 @@ class COATOOLS_OT_ChangeTextureInterpolationMode(bpy.types.Operator):
         for sprite in sprite_object.children:
             if sprite.type == "MESH":
                 for mat in sprite.data.materials:
-                    for node in mat.node_tree.nodes:
-                        if node.type == "TEX_IMAGE":
-                            node.interpolation = self.interpolation_method
+                    if mat.node_tree != None:
+                        for node in mat.node_tree.nodes:
+                            if node.type == "TEX_IMAGE":
+                                node.interpolation = self.interpolation_method
         return {"FINISHED"}
 
     def invoke(self, context, event):
