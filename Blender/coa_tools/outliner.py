@@ -4,6 +4,28 @@ from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, FloatPrope
 from . import functions
 from bpy.app.handlers import persistent
 
+def selected_update(self, context):
+    if self.entry_type in ["SPRITE", "OBJECT"]:
+        obj = bpy.data.objects[self.display_name]
+        if self.selected:
+            obj.select_set(True)
+        else:
+            obj.select_set(False)
+    elif self.entry_type in ["BONE"]:
+        obj = bpy.data.objects[self.name]
+        context.view_layer.objects.active = obj
+        if obj.mode == "OBJECT":
+            bpy.ops.object.mode_set(mode="POSE")
+        bone = obj.data.bones[self.display_name]
+        if self.selected:
+            bone.select = True
+            bone.select_head = True
+            bone.select_tail = True
+        else:
+            bone.select = False
+            bone.select_head = False
+            bone.select_tail = False
+
 def select_outliner_object(self, context):
     selected_item = self.outliner[self.outliner_index]
     if selected_item.entry_type in ["SPRITE", "OBJECT"]:
@@ -97,7 +119,7 @@ class COAOutliner(bpy.types.PropertyGroup):
     entry_type: StringProperty(default="SPRITE") # ["SPRITE", "OBJECT","SLOT", "BONE", "BONE_PARENT"]
     hierarchy_level: IntProperty()
     slot_type: StringProperty()
-    selected: BoolProperty(default=False)
+    selected: BoolProperty(default=False, update=selected_update)#, update=select_object)
     active: BoolProperty(default=False)
     hide: BoolProperty(default=False, set=set_hide, get=get_hide)
     hide_select: BoolProperty(default=False, set=set_hide_select, get=get_hide_select)
@@ -146,7 +168,6 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
                 object_icon = "LIGHT"
 
             if item.entry_type not in ["SLOT","BONE_PARENT"]:
-                # row_left.label(text="", icon=selected_icon)
                 row_left.prop(item, "selected", text="", icon=selected_icon)
             else:
                 row_left.label(text="", icon="NONE")
