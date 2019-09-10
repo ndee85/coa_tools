@@ -772,23 +772,23 @@ def update_settings_ui(self, context):
             row.label(text="Restart blender to complete update", icon="ERROR")
             return
 
-    split = row.split(factor=0.3, align=False)
-    subcol = split.column()
-    subcol.prop(settings, "auto_check_update")
-    subcol = split.column()
+    # split = row.split(factor=0.3, align=False)
+    # subcol = split.column()
+    # subcol.prop(settings, "auto_check_update")
+    # subcol = split.column()
 
-    if settings.auto_check_update==False: subcol.enabled = False
-    subrow = subcol.row()
-    subrow.label(text="Interval between checks")
-    subrow = subcol.row(align=True)
-    checkcol = subrow.column(align=True)
-    checkcol.prop(settings,"updater_intrval_months")
-    checkcol = subrow.column(align=True)
-    checkcol.prop(settings,"updater_intrval_days")
-    checkcol = subrow.column(align=True)
-    checkcol.prop(settings,"updater_intrval_hours")
-    checkcol = subrow.column(align=True)
-    checkcol.prop(settings,"updater_intrval_minutes")
+    # if settings.auto_check_update==False: subcol.enabled = False
+    # subrow = subcol.row()
+    # subrow.label(text="Interval between checks")
+    # subrow = subcol.row(align=True)
+    # checkcol = subrow.column(align=True)
+    # checkcol.prop(settings,"updater_intrval_months")
+    # checkcol = subrow.column(align=True)
+    # checkcol.prop(settings,"updater_intrval_days")
+    # checkcol = subrow.column(align=True)
+    # checkcol.prop(settings,"updater_intrval_hours")
+    # checkcol = subrow.column(align=True)
+    # checkcol.prop(settings,"updater_intrval_minutes")
 
 
     # checking / managing updates

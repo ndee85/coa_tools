@@ -122,7 +122,7 @@ class COAToolsPreferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "show_donate_icon")
+        # layout.prop(self, "show_donate_icon")
         layout.prop(self, "sprite_import_export_scale")
 
         addon_updater_ops.update_settings_ui(self, context)
