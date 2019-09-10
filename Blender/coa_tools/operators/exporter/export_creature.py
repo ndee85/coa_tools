@@ -736,6 +736,9 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         return True
 
     def execute(self, context):
+        if not os.path.exists(self.export_path):
+            self.report({"WARNING"}, "Please define a valid export path.")
+            return{"FINISHED"}
         self.reduce_size = context.scene.coa_tools.minify_json
         bpy.ops.ed.undo_push(message="Start Export")
         bpy.ops.ed.undo_push(message="Start Export")
