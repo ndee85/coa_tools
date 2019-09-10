@@ -213,7 +213,7 @@ class COATOOLS_PT_ObjectProperties(bpy.types.Panel):
                 row = layout.row(align=True)
                 row.label(text="Sprite Properties:")
 
-            if obj != None and obj.type == "MESH" and "sprite" in obj.coa_tools and "coa_base_sprite" in obj.modifiers:
+            if obj != None and obj.type == "MESH" and "coa_base_sprite" in obj.modifiers:
                 row = layout.row(align=True)
                 row.prop(obj.data.coa_tools, 'hide_base_sprite', text="Hide Base Sprite")
                 if len(obj.data.vertices) > 4 and obj.data.coa_tools.hide_base_sprite == False:
@@ -460,15 +460,12 @@ class COATOOLS_PT_Tools(bpy.types.Panel):
                     row = col.row(align=True)
                     row.prop(tool_settings, "use_auto_normalize", text="Auto Normalize")
 
-        if obj != None and (
-                "sprite" in obj.coa_tools or "coa_bone_shape" in obj) and obj.mode == "EDIT" and obj.type == "MESH" and sprite_object.coa_tools.edit_mesh:
+        if obj != None and obj.mode == "EDIT" and obj.type == "MESH" and sprite_object.coa_tools.edit_mesh:
             row = layout.row(align=True)
             row.label(text="Mesh Tools:")
 
-            if "sprite" in obj.coa_tools:
-                row = layout.row(align=True)
-                operator = row.operator("coa_tools.generate_mesh_from_edges_and_verts", text="Generate Mesh",
-                                        icon="OUTLINER_OB_SURFACE")
+            row = layout.row(align=True)
+            operator = row.operator("coa_tools.generate_mesh_from_edges_and_verts", text="Generate Mesh", icon="OUTLINER_OB_SURFACE")
 
             col = layout.column(align=True)
 

@@ -278,7 +278,7 @@ def set_weights(self,context,obj):
 def hide_base_sprite(obj):
     context = bpy.context
     selected_object = bpy.data.objects[context.active_object.name]
-    if "sprite" in obj.coa_tools and obj.type == "MESH":
+    if obj.type == "MESH" and "coa_base_sprite" in obj.vertex_groups:
         orig_mode = obj.mode
         context.view_layer.objects.active = obj
         bpy.ops.object.mode_set(mode="OBJECT")
