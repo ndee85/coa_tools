@@ -277,43 +277,44 @@ def set_weights(self,context,obj):
 
 def hide_base_sprite(obj):
     context = bpy.context
-    selected_object = bpy.data.objects[context.active_object.name]
-    if obj.type == "MESH" and "coa_base_sprite" in obj.vertex_groups:
-        orig_mode = obj.mode
-        context.view_layer.objects.active = obj
-        bpy.ops.object.mode_set(mode="OBJECT")
-        bpy.ops.object.mode_set(mode="EDIT")
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
-        bm.verts.ensure_lookup_table()
-        
-        vertex_idxs = []
-        if "coa_base_sprite" in obj.vertex_groups:
-            v_group_idx = obj.vertex_groups["coa_base_sprite"].index
-            for i,vert in enumerate(obj.data.vertices):
-                for g in vert.groups:
-                    if g.group == v_group_idx:
-                        vertex_idxs.append(i)
-                    
-        for idx in vertex_idxs:
-            vert = bm.verts[idx]
-            vert.hide = True
-            vert.select = False
-            for edge in vert.link_edges:
-                edge.hide = True
-                edge.select = False
-            for face in vert.link_faces:
-                face.hide = obj.data.coa_tools.hide_base_sprite
-                face.select = False
-                
-        if "coa_base_sprite" in obj.modifiers:
-            mod = obj.modifiers["coa_base_sprite"]
-            mod.show_viewport = obj.data.coa_tools.hide_base_sprite
-            mod.show_render = obj.data.coa_tools.hide_base_sprite
-            
-        bmesh.update_edit_mesh(me)               
-        bpy.ops.object.mode_set(mode=orig_mode)                      
-    context.view_layer.objects.active = selected_object
+    selected_object = bpy.data.objects[context.active_object.name] if bpy.context.active_object != None else None
+    if selected_object != None:
+        if obj.type == "MESH" and "coa_base_sprite" in obj.vertex_groups:
+            orig_mode = obj.mode
+            context.view_layer.objects.active = obj
+            bpy.ops.object.mode_set(mode="OBJECT")
+            bpy.ops.object.mode_set(mode="EDIT")
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            bm.verts.ensure_lookup_table()
+
+            vertex_idxs = []
+            if "coa_base_sprite" in obj.vertex_groups:
+                v_group_idx = obj.vertex_groups["coa_base_sprite"].index
+                for i,vert in enumerate(obj.data.vertices):
+                    for g in vert.groups:
+                        if g.group == v_group_idx:
+                            vertex_idxs.append(i)
+
+            for idx in vertex_idxs:
+                vert = bm.verts[idx]
+                vert.hide = True
+                vert.select = False
+                for edge in vert.link_edges:
+                    edge.hide = True
+                    edge.select = False
+                for face in vert.link_faces:
+                    face.hide = obj.data.coa_tools.hide_base_sprite
+                    face.select = False
+
+            if "coa_base_sprite" in obj.modifiers:
+                mod = obj.modifiers["coa_base_sprite"]
+                mod.show_viewport = obj.data.coa_tools.hide_base_sprite
+                mod.show_render = obj.data.coa_tools.hide_base_sprite
+
+            bmesh.update_edit_mesh(me)
+            bpy.ops.object.mode_set(mode=orig_mode)
+        context.view_layer.objects.active = selected_object
     
 def get_uv_from_vert(uv_layer, v):
     for l in v.link_loops:

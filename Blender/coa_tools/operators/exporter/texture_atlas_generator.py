@@ -104,7 +104,7 @@ class TextureAtlasGenerator:
             height = abs((bounds_px[3] - bounds_px[1]))
             texture_data = TextureData(image.name, obj, bounds_px, bounds_rel, width, height)
             return texture_data
-        return None
+        return TextureData(None, obj, [0, 0, 1, 1], [0, 0, 1, 1], 1, 1)
 
     @staticmethod
     def get_sorted_texture_data(objs, output_scale):
@@ -114,6 +114,7 @@ class TextureAtlasGenerator:
                 texture_data = TextureAtlasGenerator.get_texture_bounds(obj, output_scale)
                 if texture_data != None:
                     texture_data_list.append(texture_data)
+
         texture_data_list = sorted(texture_data_list,
                                    key=lambda x: x.width * x.height + math.pow(x.width, 1) + math.pow(x.height, 1),
                                    reverse=True)
@@ -271,6 +272,7 @@ class TextureAtlasGenerator:
         render_collection = bpy.data.collections.new("COA Atlas Collection")
         context.scene.collection.children.link(render_collection)
         render_collection.hide_render = False
+        bpy.data.collections["COA Export Collection"].hide_render = True
 
         ### Extract texture data from given objects. Gives texture width, height and boundaries
         texture_data_list = TextureAtlasGenerator.get_sorted_texture_data(objects, output_scale)
@@ -285,7 +287,10 @@ class TextureAtlasGenerator:
         uv_objs = []
         atlas_objs = []
         for slot in atlas_data.texture_slots:
-            if slot.texture_data != None:
+            # if slot.texture_data != None and slot.texture_data.img_name == None:
+            #     obj = slot.texture_data.texture_object
+            #     uv_objs.append(obj)
+            if slot.texture_data != None:# and slot.texture_data.img_name != None:
                 slot_len += 1
                 obj = slot.texture_data.texture_object
                 uv_objs.append(obj)
@@ -321,8 +326,8 @@ class TextureAtlasGenerator:
                 atlas_obj.coa_tools.driver_remove("alpha")
                 atlas_obj.coa_tools.alpha = 1.0
 
-                obj_scale_x = atlas_obj.dimensions[0] / slot.texture_data.width
-                obj_scale_y = atlas_obj.dimensions[2] / slot.texture_data.height
+                obj_scale_x = (atlas_obj.dimensions[0]/atlas_obj.scale[0]) / slot.texture_data.width
+                obj_scale_y = (atlas_obj.dimensions[2]/atlas_obj.scale[2]) / slot.texture_data.height
                 atlas_obj.location = [slot.x, 0, -slot.y]
                 atlas_obj.scale[0] = 1.0/obj_scale_x
                 atlas_obj.scale[2] = 1.0/obj_scale_y
@@ -368,7 +373,8 @@ class TextureAtlasGenerator:
             obj.select_set(False)
         for obj in uv_objs:
             obj.select_set(True)
-            context.view_layer.objects.active = obj
+        context.view_layer.objects.active = uv_objs[0]
+
         if len(context.selected_objects) > 1:
             bpy.ops.object.join()
 
@@ -377,7 +383,7 @@ class TextureAtlasGenerator:
         for vert in merged_uv_obj.data.vertices:
             vert.select = True
             vert.hide = False
-
+        bpy.data.collections["COA Export Collection"].hide_render = False
         return atlas_img, merged_uv_obj, atlas_data
 
 

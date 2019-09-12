@@ -31,6 +31,7 @@ from mathutils import Vector,Matrix, Quaternion, Euler
 import shutil
 from . texture_atlas_generator import TextureAtlasGenerator
 import zipfile
+import pdb
 
 class Sprite:
     def __init__(self, mesh_object):
@@ -60,14 +61,7 @@ class Sprite:
                          "end_index": None}
             self.slots = [slot_data]
             sprite.data = slot_data["slot"]
-        self.context.collection.objects.link(sprite)
-
-        # cleanup basesprite
-        for slot_data in self.slots:
-            slot = slot_data["slot"]
-            sprite.data = slot
-            if len(sprite.data.vertices) > 4:
-                remove_base_sprite(sprite)
+        bpy.data.collections["COA Export Collection"].objects.link(sprite)
         return sprite
 
     def delete_sprite(self, collection):
@@ -145,6 +139,9 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         return armature
 
     def prepare_armature_and_sprites_for_export(self, context, scene):
+        export_collection = bpy.data.collections.new("COA Export Collection")
+        context.scene.collection.children.link(export_collection)
+
         # get sprites that get exported
         sprites = []
         sprite_object_children = get_children(context, self.sprite_object, [])
@@ -353,7 +350,7 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
                 slot = slot_data["slot"]
                 atlas_sprite = sprite.object.copy()
                 atlas_sprite.data = slot.copy()
-                context.collection.objects.link(atlas_sprite)
+                bpy.data.collections["COA Export Collection"].objects.link(atlas_sprite)
                 atlas_sprite.select_set(True)
                 context.view_layer.objects.active = atlas_sprite
                 name = sprite.name + "_COA_SLOT_" + str(i).zfill(3) if len(sprite.slots) > 1 else sprite.name
@@ -428,8 +425,7 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
             for j, slot in enumerate(sprite.slots):
                 sprite.object.data = slot["slot"]
                 v_group_name = sprite.name if len(sprite.slots) <= 1 else sprite.name + "_COA_SLOT_" + str(j).zfill(3)
-                v_group = merged_atlas_obj.vertex_groups[v_group_name]
-
+                v_group = merged_atlas_obj.vertex_groups[v_group_name]# if v_group_name in merged_atlas_obj.vertex_groups else None
                 bm = bmesh.from_edit_mesh(merged_atlas_obj.data)
 
                 sprite, slot = self.get_sprite_data_by_name(v_group.name)
@@ -474,7 +470,6 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
                             current_face_index += 1
                             indices.append(self.remapped_indices[vert.index])
                         slot["end_index"] = current_face_index
-
 
         bpy.ops.object.mode_set(mode="OBJECT")
         return points, uvs, indices
@@ -685,7 +680,12 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
                             animation[anim_name]["uv_swaps"][str(frame)][slot_name] = {"local_offset": [0, 0], "global_offset": [0, 0], "scale": scale, "enabled": enabled}
 
                             # collect mesh opacity and tint data
-                            animation[anim_name]["mesh_opacities"][str(frame)][slot_name] = {"opacity": round(sprite_object.coa_tools.alpha*100, 1)}
+                            animation[anim_name]["mesh_opacities"][str(frame)][slot_name] = {
+                                "red": round(sprite_object.coa_tools.modulate_color[0]*100, 1),
+                                "green": round(sprite_object.coa_tools.modulate_color[1]*100, 1),
+                                "blue": round(sprite_object.coa_tools.modulate_color[2]*100, 1),
+                                "opacity": round(sprite_object.coa_tools.alpha*100, 1)
+                            }
 
 
                     self.export_progress_current += 1
@@ -730,6 +730,19 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         context.window_manager.progress_begin(0, 100)
         context.window_manager.progress_update(0)
 
+    def remove_base_sprites(self):
+        for sprite in self.sprite_object.children:
+            if sprite.type == "MESH":
+                slots = []
+                if len(sprite.coa_tools.slot) == 0:
+                    slots.append(sprite.data)
+                else:
+                    for slot in sprite.coa_tools.slot:
+                        slots.append(slot.mesh)
+                for slot in slots:
+                    sprite.data = slot
+                    if len(slot.vertices) > 4:
+                        remove_base_sprite(sprite)
 
     @classmethod
     def poll(cls, context):
@@ -756,7 +769,9 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         self.armature_orig = get_armature(self.sprite_object)
 
         # collect sprite data and armature for later usage
+        self.remove_base_sprites()
         self.sprite_data, self.armature = self.prepare_armature_and_sprites_for_export(context, scene)
+
         # do precalculations to check various things. makes the exporter overall faster
         self.bone_scaled = self.check_and_store_bone_scaling(context)
         self.bone_weights = self.store_bone_weights()

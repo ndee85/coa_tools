@@ -41,6 +41,9 @@ def property_key_on_frame(obj,prop_names,frame,type="PROPERTY"):
 
 def remove_base_sprite(obj):
     active_object = bpy.context.active_object
+    for modifier in obj.modifiers:
+        if modifier.name == "coa_base_sprite":
+            obj.modifiers.remove(modifier)
     bpy.context.view_layer.objects.active = obj
     obj.hide_set(False)
     bpy.ops.object.mode_set(mode="EDIT")
