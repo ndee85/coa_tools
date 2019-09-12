@@ -13,10 +13,17 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
     def poll(cls, context):
         return True
 
+    def convert_actions(self, old_name, new_name):
+        for action in bpy.data.actions:
+            if old_name in action.name:
+                action.name = action.name.split(old_name)[0]+new_name
 
     def convert_sprite_objects(self):
         # converts empty sprite objects to armature sprite objects
         converted_sprite_objects = []
+        old_name = ""
+        new_name = ""
+
         for obj in bpy.data.objects:
             obj_name = obj.name
             if "sprite_object" in obj.coa_tools and obj.type != "ARMATURE" and obj not in converted_sprite_objects:
@@ -33,8 +40,12 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
 
                 bpy.data.objects.remove(obj)
                 if armature != None:
+                    old_name = str(armature.name)
+                    new_name = str(obj_name)
                     armature.name = obj_name
-
+        if old_name != new_name:
+            self.convert_actions(old_name, new_name)
+        bpy.context.evaluated_depsgraph_get()
     def convert_properties(self):
         # convert meshes
         for mesh in bpy.data.meshes:
@@ -119,8 +130,6 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
             for material_name in mesh.materials.keys():
                 mat = mesh.materials[material_name] if material_name in mesh.materials else None
                 if mat != None:
-                    texture_path = None
-
                     texture_name = None
                     if mat.use_nodes and mat.node_tree != None:
                         for node in mat.node_tree.nodes:
@@ -129,20 +138,10 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
                                 break
 
                     if texture_name != None:
-                        # bpy.data.materials.remove(mat, do_unlink=True, do_id_user=True, do_ui_user=True)
                         mesh.materials.clear()
                         self.setup_material(context, mesh, self.clear_material(mat), texture_name)
                     else:
-                        texture_path = os.path.join(texture_dir_path, material_name)
-                        if os.path.isfile(texture_path):
-                            bpy.data.images.load(texture_path, check_existing=True)
-                            # bpy.data.materials.remove(mat, do_unlink=True, do_id_user=True, do_ui_user=True)
-                            mesh.materials.clear()
-                            self.setup_material(context, mesh, self.clear_material(mat), material_name)
-                        elif material_name in bpy.data.images:
-                            # bpy.data.materials.remove(mat, do_unlink=True, do_id_user=True, do_ui_user=True)
-                            mesh.materials.clear()
-                            self.setup_material(context, mesh, self.clear_material(mat), material_name)
+                        self.setup_material(context, mesh, self.clear_material(mat), material_name)
 
 
     def convert_drivers(self, context):
