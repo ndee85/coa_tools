@@ -276,9 +276,9 @@ def register():
     register_keymaps()
 
     # create handler
-    bpy.app.handlers.depsgraph_update_pre.append(outliner.create_outliner_items)
-    bpy.app.handlers.depsgraph_update_post.append(update_properties)
+    # bpy.app.handlers.depsgraph_update_pre.append(outliner.create_outliner_items)
     bpy.app.handlers.frame_change_post.append(update_properties)
+    bpy.app.handlers.depsgraph_update_post.append(update_properties)
     bpy.app.handlers.load_post.append(check_view_2D_3D)
     bpy.app.handlers.load_post.append(check_for_deprecated_data)
     bpy.app.handlers.load_post.append(set_shading)
@@ -299,12 +299,12 @@ def unregister():
     unregister_keymaps()
 
     # delete handler
-    bpy.app.handlers.depsgraph_update_pre.remove(outliner.create_outliner_items)
-    bpy.app.handlers.depsgraph_update_post.remove(update_properties)
+    # bpy.app.handlers.depsgraph_update_pre.remove(outliner.create_outliner_items)
     bpy.app.handlers.frame_change_post.remove(update_properties)
+    bpy.app.handlers.depsgraph_update_post.remove(update_properties)
     bpy.app.handlers.load_post.remove(check_view_2D_3D)
     bpy.app.handlers.load_post.remove(check_for_deprecated_data)
-    bpy.app.handlers.load_post.remove(set_shading)
+
 
 @persistent
 def check_for_deprecated_data(dummy):
@@ -337,24 +337,28 @@ def set_shading(dummy):
     bpy.ops.coa_tools.updater_check_now()
 
 @persistent
-def update_properties(dummy):
+def update_properties(scene, depsgraph):
     context = bpy.context
-    for obj in context.view_layer.objects:
-        if obj.coa_tools.alpha != obj.coa_tools.alpha_last:
-            set_alpha(obj, context, obj.coa_tools.alpha)
-            obj.coa_tools.alpha_last = obj.coa_tools.alpha
+    for obj in bpy.data.objects:
+        obj_eval = obj.evaluated_get(depsgraph)
         
-        if obj.coa_tools.modulate_color != obj.coa_tools.modulate_color_last:
-            set_modulate_color(obj, context, obj.coa_tools.modulate_color)
-            obj.coa_tools.modulate_color_last = obj.coa_tools.modulate_color
-        
-        if obj.coa_tools.z_value != obj.coa_tools.z_value_last:
-            set_z_value(context, obj, obj.coa_tools.z_value)
-            obj.coa_tools.z_value_last = obj.coa_tools.z_value
-        
-        if obj.coa_tools.slot_index != obj.coa_tools.slot_index_last:
-            change_slot_mesh_data(bpy.context, obj)
-            obj.coa_tools.slot_index_last = obj.coa_tools.slot_index
+        if obj_eval.coa_tools.slot_index != obj_eval.coa_tools.slot_index_last:
+            change_slot_mesh_data(bpy.context, obj, obj_eval)
+            obj.coa_tools.slot_index_last = obj_eval.coa_tools.slot_index
+
+        if obj_eval.coa_tools.alpha != obj_eval.coa_tools.alpha_last:
+            set_alpha(obj, context, obj_eval.coa_tools.alpha)
+            obj.coa_tools.alpha_last = obj_eval.coa_tools.alpha
+
+        if obj_eval.coa_tools.modulate_color != obj_eval.coa_tools.modulate_color_last:
+            set_modulate_color(obj, context, obj_eval.coa_tools.modulate_color)
+            obj.coa_tools.modulate_color_last = obj_eval.coa_tools.modulate_color
+
+        if obj_eval.coa_tools.z_value != obj_eval.coa_tools.z_value_last:
+            set_z_value(context, obj, obj_eval.coa_tools.z_value)
+            obj.coa_tools.z_value_last = obj_eval.coa_tools.z_value
+
+
 
 def copy_icons():
     version = str(bpy.app.version[0]) + "." + str(bpy.app.version[1])

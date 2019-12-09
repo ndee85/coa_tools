@@ -732,12 +732,13 @@ def set_alpha(obj, context, alpha):
             coa_material_node.inputs["Alpha"].default_value = alpha
 
 
-def change_slot_mesh_data(context,obj):
+def change_slot_mesh_data(context, obj, obj_eval=None):
     if len(obj.coa_tools.slot) > 0:
         slot_len = len(obj.coa_tools.slot)-1
         obj.coa_tools["slot_index"] = min(obj.coa_tools.slot_index,max(0,len(obj.coa_tools.slot)-1))
-        
-        idx = max(min(obj.coa_tools.slot_index,len(obj.coa_tools.slot)-1),0)
+        if obj_eval == None:
+            obj_eval = obj
+        idx = max(min(obj_eval.coa_tools.slot_index,len(obj.coa_tools.slot)-1),0)
         
         slot = obj.coa_tools.slot[idx]
         obj = slot.id_data
