@@ -276,7 +276,7 @@ def register():
     register_keymaps()
 
     # create handler
-    # bpy.app.handlers.depsgraph_update_pre.append(outliner.create_outliner_items)
+    bpy.app.handlers.depsgraph_update_pre.append(outliner.create_outliner_items)
     bpy.app.handlers.frame_change_post.append(update_properties)
     bpy.app.handlers.depsgraph_update_post.append(update_properties)
     bpy.app.handlers.load_post.append(check_view_2D_3D)
@@ -299,7 +299,7 @@ def unregister():
     unregister_keymaps()
 
     # delete handler
-    # bpy.app.handlers.depsgraph_update_pre.remove(outliner.create_outliner_items)
+    bpy.app.handlers.depsgraph_update_pre.remove(outliner.create_outliner_items)
     bpy.app.handlers.frame_change_post.remove(update_properties)
     bpy.app.handlers.depsgraph_update_post.remove(update_properties)
     bpy.app.handlers.load_post.remove(check_view_2D_3D)
