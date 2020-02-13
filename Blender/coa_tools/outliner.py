@@ -27,21 +27,22 @@ def selected_update(self, context):
             bone.select_tail = False
 
 def select_outliner_object(self, context):
-    selected_item = self.outliner[self.outliner_index]
-    if selected_item.entry_type in ["SPRITE", "OBJECT"]:
-        sprite_object = bpy.data.objects[selected_item.sprite_object_name]
-        edit_mode_active = sprite_object != None and (
-        sprite_object.coa_tools.edit_mesh or sprite_object.coa_tools.edit_armature or sprite_object.coa_tools.edit_weights or sprite_object.coa_tools.edit_shapekey)
-        if not edit_mode_active:
+    if self.outliner_index < len(self.outliner)-1:
+        selected_item = self.outliner[self.outliner_index]
+        if selected_item.entry_type in ["SPRITE", "OBJECT"]:
+            sprite_object = bpy.data.objects[selected_item.sprite_object_name]
+            edit_mode_active = sprite_object != None and (
+            sprite_object.coa_tools.edit_mesh or sprite_object.coa_tools.edit_armature or sprite_object.coa_tools.edit_weights or sprite_object.coa_tools.edit_shapekey)
+            if not edit_mode_active:
 
-            selected_object = context.view_layer.objects[selected_item.name]
-            for obj in context.view_layer.objects:
-                if obj in sprite_object.children:
-                    obj.select_set(False)
-            for item in self.outliner:
-                if item.selected:
-                    bpy.data.objects[item.name].select_set(True)
-            context.view_layer.objects.active = selected_object
+                selected_object = context.view_layer.objects[selected_item.name]
+                for obj in context.view_layer.objects:
+                    if obj in sprite_object.children:
+                        obj.select_set(False)
+                for item in self.outliner:
+                    if item.selected:
+                        bpy.data.objects[item.name].select_set(True)
+                context.view_layer.objects.active = selected_object
 
 def set_hide(self, value):
     if self.entry_type in ["OBJECT", "SPRITE", "BONE_PARENT"]:
