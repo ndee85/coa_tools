@@ -613,7 +613,7 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
 
         # run through all animations
         for anim_index, anim in enumerate(anim_collections):
-            if anim.name not in ["NO ACTION"]:
+            if anim.name not in ["NO ACTION"] and anim.export:
                 if anim.name == "Restpose":
                     anim.frame_end = 0
                     if "default" in anim_collections:

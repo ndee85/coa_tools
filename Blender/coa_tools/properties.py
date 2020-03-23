@@ -348,6 +348,7 @@ class AnimationCollections(bpy.types.PropertyGroup):
     frame_end: IntProperty(default=250, min=1, update=set_frame_end)
     timeline_events: CollectionProperty(type=TimelineEvent)
     event_index: IntProperty(default=-1, max=-1)
+    export: BoolProperty(default=True)
 
 class ObjectProperties(bpy.types.PropertyGroup):
     def get_selected_shapekey(self):

@@ -212,19 +212,52 @@ class COATOOLS_OT_DuplicateAnimationCollection(bpy.types.Operator):
         return {"FINISHED"}
         
 
+
 class COATOOLS_OT_AddAnimationCollection(bpy.types.Operator):
     bl_idname = "coa_tools.add_animation_collection"
     bl_label = "Add Animation Collection"
     bl_description = "Add new Animation Collection"
     bl_options = {"REGISTER"}
 
+    def get_actions(self, context):
+        ACTIONS = []
+        i = -1
+
+        sprite_object = get_sprite_object(context.active_object)
+        already_used_actions = []
+        for anim in sprite_object.coa_tools.anim_collections:
+            for action in bpy.data.actions:
+                if anim.name in action.name:
+                    already_used_actions.append(action)
+
+        for action in bpy.data.actions:
+            if action not in already_used_actions:
+                i += 1
+                ACTIONS.append((action.name, action.name, action.name, "ACTION", i))
+        return ACTIONS
+
+    sprite_object = None
+    armature = None
+    type: EnumProperty(items=(("NEW","New","New"), ("EXISTING","Existing","Existing")))
+    action: EnumProperty(name="Action",items=get_actions)
+    animation_name: StringProperty(name="Name", default="NewCollection")
+
     @classmethod
     def poll(cls, context):
         return True
+
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.prop(self, "type", expand=True)
+        if self.type == "EXISTING":
+            row = layout.row()
+            row.prop(self, "action", text="Animation")
+        else:
+            row = layout.row()
+            row.prop(self, "animation_name")
     
-    sprite_object = None
-    
-    def create_actions_collection(self,context):
+    def create_actions_collection(self, context, action_name):
         if self.sprite_object != None:
             if len(self.sprite_object.coa_tools.anim_collections) == 0:
                 item = self.sprite_object.coa_tools.anim_collections.add()
@@ -234,15 +267,21 @@ class COATOOLS_OT_AddAnimationCollection(bpy.types.Operator):
                 item.name = "Restpose"
                 item.frame_start = 0
                 item.frame_end = 1
-                
+
             item = self.sprite_object.coa_tools.anim_collections.add()
-            item.name = check_name(self.sprite_object.coa_tools.anim_collections,"NewCollection")
+            if self.type == "NEW":
+                item.name = check_name(self.sprite_object.coa_tools.anim_collections,self.animation_name)
+            elif self.type == "EXISTING":
+                name = action_name
+                if self.armature.name in name:
+                    name = action_name.split("_" + self.armature.name)[0]
+                item.name = name
             item.name_old = item.name
             item.action_collection = True
             
             self.sprite_object.coa_tools.anim_collections_index = len(self.sprite_object.coa_tools.anim_collections)-1
-        else:
-            return{'FINISHED'}    
+            return item
+
     
     def create_actions(self,context):
         item = self.sprite_object.coa_tools.anim_collections[self.sprite_object.coa_tools.anim_collections_index]
@@ -268,13 +307,28 @@ class COATOOLS_OT_AddAnimationCollection(bpy.types.Operator):
                     child.animation_data_create()
                 child.animation_data.action = action
 
+    def rename_actions(self, action_name):
+        for action in bpy.data.actions:
+            if action.name == action_name:
+                action.name = action_name + "_" + self.armature.name
+        self.sprite_object.coa_tools.anim_collections_index = len(self.sprite_object.coa_tools.anim_collections)-1
+
+    def invoke(self, context, event):
+        self.sprite_object = get_sprite_object(context.active_object)
+        self.armature = get_armature(self.sprite_object)
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+
     def execute(self, context):
         self.sprite_object = get_sprite_object(context.active_object)
-        
-        self.create_actions_collection(context)
-        self.create_actions(context)
-        
-        
+        self.armature = get_armature(self.sprite_object)
+
+        if self.type == "NEW":
+            self.create_actions_collection(context, self.animation_name)
+            self.create_actions(context)
+        elif self.type == "EXISTING":
+            collection = self.create_actions_collection(context, self.action)
+            self.rename_actions(collection.name)
         return {"FINISHED"}
         
 class COATOOLS_OT_RemoveAnimationCollection(bpy.types.Operator):

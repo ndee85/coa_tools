@@ -874,7 +874,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
     animations = []
 
     for anim_index,anim in enumerate(anims):
-        if anim.name not in ["NO ACTION","Restpose"]:
+        if anim.name not in ["NO ACTION","Restpose"] and anim.export:
             sprite_object.coa_tools.anim_collections_index = anim_index ### set animation
 
             anim_data = animation_data.copy()

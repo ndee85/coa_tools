@@ -495,6 +495,7 @@ class COATOOLS_UL_AnimationCollections(bpy.types.UIList):
         if item.name not in ["NO ACTION","Restpose"]:
             col.label(icon="ACTION")
             col.prop(item,"name",emboss=False,text="")
+            col.prop(item,"export",text="")
         elif item.name == "NO ACTION":
             col.label(icon="RESTRICT_SELECT_ON")
             col.label(text=item.name)
@@ -650,10 +651,8 @@ class COATOOLS_PT_Collections(bpy.types.Panel):
         scene = context.scene
         sprite_object = functions.get_sprite_object(obj)
         if sprite_object != None:
-
-
-            row = layout.row()
-            row.prop(sprite_object.coa_tools,"animation_loop",text="Wrap Animation Playback")
+            # row = layout.row()
+            # row.prop(sprite_object.coa_tools,"animation_loop",text="Wrap Animation Playback")
 
             row = layout.row()
             row.prop(scene.coa_tools,"nla_mode",expand=True)
@@ -664,7 +663,15 @@ class COATOOLS_PT_Collections(bpy.types.Panel):
                 row.prop(scene.coa_tools,"frame_end")
 
             row = layout.row()
-            row.template_list("COATOOLS_UL_AnimationCollections","dummy",sprite_object.coa_tools, "anim_collections", sprite_object.coa_tools, "anim_collections_index",rows=2,maxrows=10,type='DEFAULT')
+            box = row.box()
+            box_col = box.column(align=True)
+            box_label_row = box_col.split(factor=0.5, align=True)
+            row1 = box_label_row.row()
+            row2 = box_label_row.row()
+            row2.alignment = "RIGHT"
+            row1.label(text="Animation", icon="ACTION")
+            row2.label(text="Export",icon="EXPORT")
+            box_col.template_list("COATOOLS_UL_AnimationCollections","dummy",sprite_object.coa_tools, "anim_collections", sprite_object.coa_tools, "anim_collections_index",rows=2,maxrows=10,type='DEFAULT')
             col = row.column(align=True)
             col.operator("coa_tools.add_animation_collection",text="",icon="ADD")
             col.operator("coa_tools.remove_animation_collection",text="",icon="REMOVE")
