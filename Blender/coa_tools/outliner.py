@@ -51,6 +51,9 @@ def set_hide(self, value):
         selected_object.hide_viewport = value
         selected_object.hide_render = value
         self["hide"] = value
+        if self.id_data.coa_tools.outliner[self.id_data.coa_tools.outliner_index].name == self.name:
+            selected_object.select_set(not value)
+
     elif self.entry_type in ["BONE"]:
         selected_object = bpy.context.view_layer.objects[self.name]
         bone = selected_object.data.bones[self.display_name]
