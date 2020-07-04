@@ -342,6 +342,9 @@ def update_uv_unwrap(context):
 def clamp(n, minn, maxn):
     return max(min(maxn, n), minn)
 
+def get_coa_tools_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
 def b_version_bigger_than(version):
     if bpy.app.version > version:
         return True
