@@ -17,7 +17,8 @@ Created by Andreas Esau
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-    
+
+import os
 import bpy
 import bpy_extras
 import bpy_extras.view3d_utils
@@ -90,7 +91,7 @@ class COATOOLS_TO_DrawBone(bpy.types.WorkSpaceTool):
     bl_context_mode = 'EDIT_ARMATURE'
 
     # The prefix of the idname should be your add-on name.
-    bl_idname = "coa_tools.draw_bone"
+    bl_idname = os.path.join(functions.get_coa_tools_dir(), "icons", "coa_tools.draw_bone")
     bl_label = "Draw Bone"
     bl_description = (
         "Draws Bones"

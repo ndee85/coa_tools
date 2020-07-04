@@ -262,7 +262,7 @@ def unregister_keymaps():
 
 def register():
     addon_updater_ops.register(bl_info)
-    copy_icons()
+    #copy_icons()
 
     # register classes
     for cls in classes:
@@ -357,31 +357,3 @@ def update_properties(scene, depsgraph):
         if obj_eval.coa_tools.z_value != obj_eval.coa_tools.z_value_last:
             set_z_value(context, obj, obj_eval.coa_tools.z_value)
             obj.coa_tools.z_value_last = obj_eval.coa_tools.z_value
-
-
-
-def copy_icons():
-    version = str(bpy.app.version[0]) + "." + str(bpy.app.version[1])
-
-    icons = [
-        "coa_tools.draw_polygon.dat",
-        "coa_tools.draw_bone.dat",
-        ]
-
-    for icon_name in icons:
-        icon_path = os.path.join(bpy.utils.user_resource("SCRIPTS", "addons"), "coa_tools", "icons", icon_name)
-        b_icon_path = os.path.join(os.path.dirname(bpy.app.binary_path), version, "datafiles", "icons", icon_name)
-
-        if os.path.isfile(b_icon_path):
-            try:
-                os.remove(b_icon_path)
-            except IOError as e:
-                print("Unable to delete file. %s" % e)
-
-        dir_path = os.path.dirname(b_icon_path)
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-        try:
-            shutil.copyfile(icon_path, b_icon_path)
-        except IOError as e:
-            print("Unable to copy file. %s" % e)
