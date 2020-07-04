@@ -262,7 +262,6 @@ def unregister_keymaps():
 
 def register():
     addon_updater_ops.register(bl_info)
-    #copy_icons()
 
     # register classes
     for cls in classes:
