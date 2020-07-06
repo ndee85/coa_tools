@@ -91,12 +91,12 @@ class COATOOLS_TO_DrawBone(bpy.types.WorkSpaceTool):
     bl_context_mode = 'EDIT_ARMATURE'
 
     # The prefix of the idname should be your add-on name.
-    bl_idname = os.path.join(functions.get_coa_tools_dir(), "icons", "coa_tools.draw_bone")
+    bl_idname = "coa_tools.draw_bone"
     bl_label = "Draw Bone"
     bl_description = (
         "Draws Bones"
     )
-    bl_icon = "coa_tools.draw_bone"
+    bl_icon = os.path.join(functions.get_coa_tools_dir(), "icons", "coa_tools.draw_bone")
     bl_widget = None
     # bl_keymap = (
     #     ("coa_tools.draw_polygon", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
