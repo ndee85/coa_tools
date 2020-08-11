@@ -753,8 +753,6 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
             self.report({"WARNING"}, "Please define a valid export path.")
             return{"FINISHED"}
         self.reduce_size = context.scene.coa_tools.minify_json
-        bpy.ops.ed.undo_push(message="Start Export")
-        bpy.ops.ed.undo_push(message="Start Export")
         self.json_data = self.setup_json_data()
         self.scene = context.scene
 
@@ -814,10 +812,11 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         self.write_json_file()
         self.save_texture_atlas(context, img_atlas, self.export_path_abs, self.project_name)
 
+        context.window_manager.progress_end()
+
         # cleanup scene and add an undo history step
+        bpy.ops.ed.undo_push(message="Export Creature")
         bpy.ops.ed.undo()
         bpy.ops.ed.undo_push(message="Export Creature")
         self.report({"INFO"}, "Export successful.")
-
-        context.window_manager.progress_end()
         return {"FINISHED"}
