@@ -110,7 +110,7 @@ def draw_sculpt_ui(self,context,layout):
         subrow = col.row(align=True)        
         subrow.prop(settings,"use_locked_size",text="",toggle=True,icon=icon)
         subrow.prop(settings,"size",slider=True)    
-        subrow.prop(settings,"use_pressure_size",text="")
+        subrow.prop(settings,"use_unified_size",text="")
         col.prop(settings,"strength")
         
         

@@ -453,10 +453,10 @@ class COATOOLS_PT_Tools(bpy.types.Panel):
                     row.prop(tool_settings.unified_paint_settings, "weight")
                     row = col.row(align=True)
                     row.prop(tool_settings.unified_paint_settings, "size")
-                    row.prop(tool_settings.unified_paint_settings, "use_pressure_size", text="")
+                    row.prop(tool_settings.unified_paint_settings, "use_unified_size", text="")
                     row = col.row(align=True)
                     row.prop(tool_settings.unified_paint_settings, "strength")
-                    row.prop(tool_settings.unified_paint_settings, "use_pressure_strength", text="")
+                    row.prop(tool_settings.unified_paint_settings, "use_unified_strength", text="")
                     row = col.row(align=True)
                     row.prop(tool_settings, "use_auto_normalize", text="Auto Normalize")
 
