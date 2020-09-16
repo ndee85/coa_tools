@@ -518,7 +518,7 @@ def set_action(context,item=None):
 def create_armature_parent(context):
     sprite = context.active_object
     armature = get_armature(get_sprite_object(sprite))
-    armature.select = True
+    armature.select_set(True)
     context.view_layer.objects.active = armature
     bpy.ops.object.parent_set(type='ARMATURE_NAME')
     context.view_layer.objects.active = sprite
