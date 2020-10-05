@@ -332,7 +332,8 @@ def set_shading(dummy):
             for screen in bpy.data.screens:
                 for area in screen.areas:
                     if area.type == "VIEW_3D":
-                        area.spaces[0].shading.type = "RENDERED"
+                        area.spaces[0].shading.type = "SOLID"
+                        area.spaces[0].shading.light = "FLAT"
             break
     bpy.ops.coa_tools.updater_check_now()
 

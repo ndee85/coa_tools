@@ -53,9 +53,12 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
                 if "coa_" in prop_name and "coa_tools" not in prop_name:
                     prop_name_new = prop_name.split("coa_")[1]
                     mesh.coa_tools[prop_name_new] = mesh[prop_name]
+                    
 
         # convert objects
         for obj in bpy.data.objects:
+            #for prop_name in obj.keys():
+                
 
             if "sprite_object" in obj:
                 obj.coa_tools["sprite_object"] = True
@@ -64,7 +67,47 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
                 if "coa_" in prop_name and "coa_tools" not in prop_name:
                     prop_name_new = prop_name.split("coa_")[1]
                     obj.coa_tools[prop_name_new] = obj[prop_name]
+
+                    anim = obj.animation_data
+                    if anim is not None and anim.action is not None:
+                        for fcu in anim.action.fcurves:
+                            if(str(fcu.data_path)==prop_name):
+                                anim.action.fcurves.remove(fcu)
+
+                    if prop_name=="coa_anim_collections":
+                        cAc=0
+                        for ac in obj[prop_name]:
+                            for ac_name in ac.keys():
+                                if(ac_name=="event"):
+                                    cEv=0
+                                    obj.coa_tools[prop_name_new][cAc]["timeline_events"]=[]
+                                    replaceArray=[]
+                                    for ev_name in ac[ac_name]:
+         
+
+                                        tempColl={}
+                                        print(str(ev_name["frame"]))
+                                        tempColl["frame"]=int(ev_name["frame"])
+                                        tempColl["event"]=[{},{}]
+                                        ev_index=0
+                                        if("sound" in ev_name.keys()):
+                                            if ev_name["sound"]!="":
+                                                tempColl["event"][ev_index]["type"]="SOUND"
+                                                tempColl["event"][ev_index]["value"]=ev_name["sound"]
+                                                ev_index+=1
+                                        if("action" in ev_name.keys()):
+                                            if ev_name["action"]!="":
+                                                tempColl["event"][ev_index]["type"]="EVENT"
+                                                tempColl["event"][ev_index]["value"]=ev_name["action"]
+                                                ev_index+=1
+                                        replaceArray.append(tempColl)
+                                        #print(str(ev_name["sound"]))
+
+                                        cEv+=1
+                                    obj.coa_tools[prop_name_new][cAc]["timeline_events"]=replaceArray
+                            cAc+=1
                     del obj[prop_name]
+
 
     def clear_material(self, mat):
         mat.use_nodes = True
@@ -163,7 +206,8 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
                 for screen in bpy.data.screens:
                     for area in screen.areas:
                         if area.type == "VIEW_3D":
-                            area.spaces[0].shading.type = "RENDERED"
+                            area.spaces[0].shading.type = "SOLID"
+                            area.spaces[0].shading.light = "FLAT"
                 break
 
     def execute(self, context):

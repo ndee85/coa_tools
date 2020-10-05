@@ -555,7 +555,7 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
             display_data["height"] = atlas_data[sprite_data_name]["height"]
 
         verts = get_mixed_vertex_data(sprite)
-        vert_coords_default[sprite_name] = verts
+        vert_coords_default[tmp_slots_data[sprite_data_name]["name"]] = verts
         display_data["vertices"] = convert_vertex_data_to_pixel_space(verts)
 
         bm = bmesh.from_edit_mesh(sprite.data)
@@ -866,13 +866,162 @@ def property_key_on_frame(obj,prop_names,frame,type="PROPERTY"):
                                             return key_on_frame
     return False
 
-def get_animation_data(self,sprite_object,armature,armature_orig):
+def format_z_order(defaultOrder,goalOrder):
+    tempArray=defaultOrder.copy()
+    changeList=[]
+
+    for k in range(300):
+        for i in range(len(defaultOrder)):
+            count=0
+            dir=getPos(tempArray[i],goalOrder)
+            if(dir>i):
+                for j in range(i+1,len(goalOrder)):
+                    count+=1
+                    if(goalOrder[j]==tempArray[i]):
+                        if not isChanged(tempArray[i],changeList):
+                            changeList.append(tempArray[i])
+                        resort(tempArray[i],i,count,tempArray)
+                        continue
+                break
+    return formatJSON(changeList,defaultOrder,goalOrder)
+
+#added
+def formatJSON(changed,defaultArray,goalArray):
+    jsonEx=[]
+    for i in range(len(changed)):
+        dPos=getPos(changed[i],defaultArray)
+        gPos=getPos(changed[i],goalArray)
+        jsonEx.append(dPos)
+        jsonEx.append(gPos-dPos)
+    return jsonEx
+
+def resort(desiredVal,currentPos,direction,tempArray):
+    if(direction>0):
+        curr=0
+        for i in range(currentPos,currentPos+direction):
+            tempArray[i]=tempArray[i+1]
+            curr=i
+        tempArray[curr+1]=desiredVal
+    elif(direction<0):
+        curr=0
+        for i in range(currentPos,currentPos+direction,-1):
+            tempArray[i]=tempArray[i-1]
+            curr=i
+        tempArray[curr-1]=desiredVal
+
+def isChanged(val,list):
+    for i in range(len(list)):
+        if(val==list[i]):
+            return True
+    return False
+
+def getPos(currLoc,goalArray):
+    for i in range(len(goalArray)):
+        if(currLoc.name == goalArray[i].name):
+            return i
+    return -1
+
+
+def isNotSorted(tempArray,goalOrder):
+    for i in range(len(goalOrder)):
+        if(tempArray[i].name == goalOrder[i].name):
+            return True
+    return False
+
+def evaluate_curve(frames,keyRight,keyLeft):
+    if(keyRight.co[1]>keyLeft.co[1]):
+        frames[0]["y"]*=-1
+        frames[1]["y"]*=-1
+    return frames
+
+def turn_to_percent(value,firstMajor,secondMajor,clamp=False):
+    if(secondMajor==firstMajor):
+        return value
+    maxim=max(0,secondMajor-firstMajor)
+    minim=min(0,secondMajor-firstMajor)
+    if(clamp):
+        if(value>maxim):
+            value=1
+        if(value<minim):
+            value=0
+    value/=abs(max(firstMajor,secondMajor)-min(firstMajor,secondMajor))
+    return value
+
+def get_key_frame(bone,frame,animation_data,type="LOCATION",channel=0,sensitivity=0): ### LOCATION, ROTATION, SCALE, ANY
+    action = animation_data.action if animation_data != None else None
+    type = "."+type.lower()
+    frames=[]
+    found=False
+    prev=None
+    if action != None:
+        for fcurve in action.fcurves:
+            if bone.name in fcurve.data_path and ((type in fcurve.data_path and fcurve.array_index==channel) or type == ".any"):
+                for keys in fcurve.keyframe_points:
+                    if keys.co[0]==frame:
+                        if(keys.interpolation!="BEZIER"):
+                            return frames
+                        if not found:
+                            currType=keys.handle_right_type
+                            keys.handle_right_type="VECTOR"
+                            prev=keys
+                            values={}
+                            maxim=max(keys.handle_right[0],keys.co[0])
+                            values["x"]=abs(maxim-min(keys.handle_right[0],keys.co[0]))
+                            if(maxim!=keys.handle_right[0]):
+                                values["x"]*=-1
+                            maxim=max(keys.handle_right[1],keys.co[1])
+                            values["y"]=abs(maxim-min(keys.handle_right[1],keys.co[1]))
+                            if(maxim!=keys.handle_right[1]):
+                                values["y"]*=-1
+                            frames.append(values)
+
+                            keys.handle_right_type=currType
+                            found=True
+                    else:
+                        if found:
+                            currType=keys.handle_left_type
+                            keys.handle_left_type="VECTOR"
+                            values={}
+                            maxim=max(keys.handle_left[0],keys.co[0])
+                            values["x"]=abs(maxim-min(keys.handle_left[0],keys.co[0]))
+                            if(maxim!=keys.handle_left[0]):
+                                values["x"]*=-1
+                            maxim=max(keys.handle_left[1],keys.co[1])
+                            values["y"]=abs(maxim-min(keys.handle_left[1],keys.co[1]))
+                            if(maxim!=keys.handle_left[1]):
+                                values["y"]*=-1
+                            frames.append(values)
+                            
+                            keys.handle_left_type=currType
+
+                            frames[0]["x"]=turn_to_percent(frames[0]["x"],prev.co[0],keys.co[0])
+                            frames[1]["x"]=turn_to_percent(frames[1]["x"],prev.co[0],keys.co[0])
+                            frames[0]["y"]=turn_to_percent(frames[0]["y"],prev.co[1],keys.co[1])
+                            frames[1]["y"]=turn_to_percent(frames[1]["y"],prev.co[1],keys.co[1])
+
+                            #frames=evaluate_curve(frames,prev,keys)
+
+                            if(sensitivity!=0):
+                                frames[0]["x"]/=sensitivity
+                                frames[0]["y"]/=sensitivity
+                                frames[1]["x"]/=sensitivity
+                                frames[1]["y"]/=sensitivity
+                            
+                            frames[1]["x"]+=1
+                            frames[1]["y"]+=1
+                            return frames
+    return frames
+  
+def get_animation_data(self,sprite_object,armature,armature_orig,cleanShapes=None):
     context = bpy.context
     scale = 1/get_addon_prefs(context).sprite_import_export_scale
     anims = sprite_object.coa_tools.anim_collections
 
     animations = []
-
+    
+    #added
+    defaultOrder=[]
+    defaultCheck=False
     for anim_index,anim in enumerate(anims):
         if anim.name not in ["NO ACTION","Restpose"] and anim.export:
             sprite_object.coa_tools.anim_collections_index = anim_index ### set animation
@@ -883,6 +1032,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
             anim_data["name"] = anim.name
             anim_data["bone"] = []
             anim_data["slot"] = []
+            anim_data["frame"]=[]
             anim_data["zOrder"] = {}
             anim_data["ffd"] = []
 
@@ -891,6 +1041,12 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
             slot_keyframe_duration = {}
             ffd_keyframe_duration = {}
             ffd_last_frame_values = {}
+            #added
+            event_keyframe_duration=0
+            
+            zOrder_keyframe_duration=0
+            goalOrder=[]
+            anim_data["zOrder"]["frame"]=[]
             for slot in self.sprites:
                 if slot.type == "MESH":
                     anim_data["slot"].append({"name":slot.name,"colorFrame":[],"displayFrame":[]})
@@ -941,16 +1097,82 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                     anim_data["bone"].append({"name":bone.name,"translateFrame":[],"rotateFrame":[],"scaleFrame":[]})
                     bone_keyframe_duration[bone.name] = {"scale_duration":0,"rot_duration":0,"pos_duration":0,"last_scale":None, "last_rot":None, "last_pos":None}
 
+            #added
+            lastDrawFrame=0
             for i in range(anim.frame_end+1):
                 frame = anim.frame_end-i
                 context.scene.frame_set(frame)
+                
+                event_keyframe_duration += 1
+                #### HANDLE EVENTS
+                for e in anim.timeline_events:
+                    if(e.frame==frame):
+                        foundAction=False
+                        foundSound=False
+                        keyframe_data = {}
+                        keyframe_data["duration"]=event_keyframe_duration
+                        #print("We are here")
+                        for v in e.event:
+                            #print("And here "+str(v.type)+","+str(v.value))
+                            if(v.type=="EVENT" and not foundAction):
+                                #print("Ev here")
+                                if(v.value!=""):
+                                    keyframe_data["action"]=v.value
+                                    foundAction=True
+                            if(v.type=="SOUND" and not foundSound):
+                                #print("Snd here")
+                                if(v.value!=""):
+                                    keyframe_data["sound"]=v.value
+                                    foundSound=True
+                            if(foundSound and foundAction):
+                                break
 
+                        anim_data["frame"].insert(0,keyframe_data)
+                        event_keyframe_duration=0
+                    elif(i==anim.frame_end and event_keyframe_duration!=0):
+                        keyframe_data = {}
+                        keyframe_data["duration"]=event_keyframe_duration
+
+                        anim_data["frame"].insert(0,keyframe_data)
+                        event_keyframe_duration=0
+                
+                zOrder_keyframe_duration+=1
                 #### HANDLE SLOT ANIMATION
                 j = 0
                 for slot in self.sprites:
                     if slot.type == "MESH":
                         slot_keyframe_duration[slot.name]["color_duration"] += 1
                         slot_keyframe_duration[slot.name]["display_duration"] += 1
+
+                        #added
+                        if property_key_on_frame(slot,["z_value"],frame):
+                            keyframe_data = {}
+                            keyframe_data["duration"]=zOrder_keyframe_duration
+
+                            if(zOrder_keyframe_duration!=0):
+                                for gslot in self.sprites:
+                                    if gslot.type == "MESH":
+                                        if(len(goalOrder)==0):
+                                            goalOrder.append(gslot)
+                                        elif(getPos(gslot,goalOrder)==-1):
+                                            added=False
+                                            for k in range(len(goalOrder)):
+                                                if(goalOrder[k].coa_tools.z_value>gslot.coa_tools.z_value):
+                                                    goalOrder.insert(k,gslot)
+                                                    added=True
+                                                    break
+                                            if not added:
+                                                goalOrder.append(gslot)
+
+
+                                #if(len(goalOrder)==len(defaultOrder)):
+                                if(len(defaultOrder)==len(goalOrder)):
+                                    keyframe_data["zOrder"]=format_z_order(defaultOrder,goalOrder)
+                                    anim_data["zOrder"]["frame"].insert(0,keyframe_data)
+                                    lastDrawFrame=frame
+                                goalOrder=[]
+
+                            zOrder_keyframe_duration=0
 
                         if property_key_on_frame(slot,["coa_tools.alpha","coa_tools.modulate_color"],frame):
 
@@ -972,6 +1194,14 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
 
 
                         j += 1
+
+                #added
+                if(frame==0 and lastDrawFrame!=0):
+                    keyframe_data = {}
+                    keyframe_data["duration"]=lastDrawFrame
+
+                    anim_data["zOrder"]["frame"].insert(0,keyframe_data)
+
                 #### HANDLE BONE ANIMATION
                 if armature != None:
                     for j,bone in enumerate(armature.data.bones):
@@ -992,7 +1222,37 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
 
                             keyframe_data = {}
                             keyframe_data["duration"] = bone_keyframe_duration[bone.name]["pos_duration"]
-                            keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+
+                            if("nonCurve" in anim.name):
+                                keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+                            else:
+                                keyX=get_key_frame(bone_orig,frame,armature_orig.animation_data,type="LOCATION",channel=0,sensitivity=2)
+                                keyY=get_key_frame(bone_orig,frame,armature_orig.animation_data,type="LOCATION",channel=1,sensitivity=2)
+                                customCurve=[]
+                                if(len(keyX)==2):
+                                    customCurve.append(keyX[0]["x"])
+                                    customCurve.append(keyX[0]["y"])
+                                    customCurve.append(keyX[1]["x"])
+                                    customCurve.append(keyX[1]["y"])
+
+                                if(len(customCurve)==4):
+                                    if(len(keyY)==2):
+                                        customCurve[0]=((customCurve[0]+keyY[0]["x"])/2)
+                                        customCurve[1]=((customCurve[1]+keyY[0]["y"])/2)
+                                        customCurve[2]=((customCurve[2]+keyY[1]["x"])/2)
+                                        customCurve[3]=((customCurve[3]+keyY[1]["y"])/2)
+                                else:
+                                    if(len(keyY)==2):
+                                        customCurve.append(keyY[0]["x"])
+                                        customCurve.append(keyY[0]["y"])
+                                        customCurve.append(keyY[1]["x"])
+                                        customCurve.append(keyY[1]["y"])
+                            
+                                if(len(customCurve)==0):
+                                    keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+                                else:
+                                    keyframe_data["curve"] = customCurve if bake_anim == False else [0,0,1,1]
+
                             keyframe_data["x"] = round(bone_pos[0],2)
                             keyframe_data["y"] = round(bone_pos[1],2)
 
@@ -1029,7 +1289,24 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
 
                             keyframe_data = {}
                             keyframe_data["duration"] = bone_keyframe_duration[bone.name]["rot_duration"]
-                            keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+
+                            if("nonCurve" in anim.name):
+                                keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+                            else:
+                                keyR=get_key_frame(bone_orig,frame,armature_orig.animation_data,type="ROTATION",channel=3,sensitivity=5)
+                            
+                                customCurve=[]
+                                if(len(keyR)==2):
+                                    customCurve.append(keyR[0]["x"])
+                                    customCurve.append(keyR[0]["y"])
+                                    customCurve.append(keyR[1]["x"])
+                                    customCurve.append(keyR[1]["y"])
+
+                                if(len(customCurve)==0):
+                                    keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+                                else:
+                                    keyframe_data["curve"] = customCurve if bake_anim == False else [0,0,1,1]
+
                             keyframe_data["rotate"] = round(bone_rot, 2)
 
                             if (frame in [0,anim.frame_end]) or (bone_keyframe_duration[bone.name]["last_rot"] != keyframe_data["rotate"]):
@@ -1055,7 +1332,37 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
 
                             keyframe_data = {}
                             keyframe_data["duration"] = bone_keyframe_duration[bone.name]["scale_duration"]
-                            keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+
+                            if("nonCurve" in anim.name):
+                                keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+                            else:
+                                keyX=get_key_frame(bone_orig,frame,armature_orig.animation_data,type="SCALE",channel=0,sensitivity=2)
+                                keyY=get_key_frame(bone_orig,frame,armature_orig.animation_data,type="SCALE",channel=1,sensitivity=2)
+                                customCurve=[]
+                                if(len(keyX)==2):
+                                    customCurve.append(keyX[0]["x"])
+                                    customCurve.append(keyX[0]["y"])
+                                    customCurve.append(keyX[1]["x"])
+                                    customCurve.append(keyX[1]["y"])
+
+                                if(len(customCurve)==4):
+                                    if(len(keyY)==2):
+                                        customCurve[0]=((customCurve[0]+keyY[0]["x"])/2)
+                                        customCurve[1]=((customCurve[1]+keyY[0]["y"])/2)
+                                        customCurve[2]=((customCurve[2]+keyY[1]["x"])/2)
+                                        customCurve[3]=((customCurve[3]+keyY[1]["y"])/2)
+                                else:
+                                    if(len(keyY)==2):
+                                        customCurve.append(keyY[0]["x"])
+                                        customCurve.append(keyY[0]["y"])
+                                        customCurve.append(keyY[1]["x"])
+                                        customCurve.append(keyY[1]["y"])
+                            
+                                if(len(customCurve)==0):
+                                    keyframe_data["curve"] = [.5,0,.5,1] if bake_anim == False else [0,0,1,1]
+                                else:
+                                    keyframe_data["curve"] = customCurve if bake_anim == False else [0,0,1,1]
+                                    
                             keyframe_data["x"] = round(bone_scale[0],2)
                             keyframe_data["y"] = round(bone_scale[1],2)
 
@@ -1089,6 +1396,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                             for slot2 in slot.coa_tools.slot:
                                 slot_data.append(tmp_slots_data[slot2.mesh.name])
 
+                        cnt=0
                         for item in slot_data:
                             data = item["data"]
                             data_name = item["name"]
@@ -1109,11 +1417,20 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
 #                                        ffd_data["curve"] = [.5,0,.5,1]
 #                                    else:
 #                                        ffd_data["tweenEasing"] = 0
-
-                                    verts = get_mixed_vertex_data(item["object"])
+                                    if slot.coa_tools.type == "SLOT":
+                                        sprite = slot.copy()
+                                        sprite.data = item["data"]
+                                        context.collection.objects.link(sprite)
+                                        if(cleanShapes!=None):
+                                            cleanShapes.append(sprite)
+                                        context.view_layer.objects.active = sprite
+                                        context.view_layer.objects.active.coa_tools.slot[cnt].active
+                                        verts = get_mixed_vertex_data(sprite)
+                                    elif slot.coa_tools.type == "MESH":
+                                        verts = get_mixed_vertex_data(item["object"])
                                     verts_relative = []
                                     for i,co in enumerate(verts):
-                                        verts_relative.append(Vector(co) - Vector(vert_coords_default[slot.name][i]))
+                                        verts_relative.append(Vector(co) - Vector(vert_coords_default[item["name"]][i]))
 
                                     ffd_data["vertices"] = convert_vertex_data_to_pixel_space(verts_relative)
 
@@ -1131,6 +1448,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                                         anim_data["ffd"][j]["frame"].insert(0,ffd_data)
                                         ffd_keyframe_duration[data_name]["ffd_duration"] = 0
                                         ffd_last_frame_values[data_name] = ffd_data["vertices"]
+                                    cnt+=1
                             j += 1
 
 
@@ -1157,6 +1475,21 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                 del anim_data[key]
 
             animations.append(anim_data)
+        else:
+            if not defaultCheck:
+                defaultCheck=True
+                for slot in self.sprites:
+                    if slot.type == "MESH":
+                        if(len(defaultOrder)==0):
+                            defaultOrder.append(slot)
+                        else:
+                            added=False
+                            for i in range(len(defaultOrder)):
+                                if(defaultOrder[i].coa_tools.z_value>slot.coa_tools.z_value):
+                                    defaultOrder.insert(i,slot)
+                                    added=True
+                            if not added:
+                                defaultOrder.append(slot)
     return animations
 
 
@@ -1233,7 +1566,8 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
         bpy.ops.ed.undo_push(message="Export to Dragonbones")
         global tmp_slots_data
         tmp_slots_data = {}
-
+        
+        
         self.get_init_state(context)
         self.scene = context.scene
 
@@ -1298,7 +1632,8 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
             self.armature.data.pose_position = "POSE"
             self.armature_orig.data.pose_position = "POSE"
         self.json_data["frameRate"] = self.scene.render.fps
-        self.json_data["armature"][0]["animation"] = get_animation_data(self,self.sprite_object,self.armature,self.armature_orig)
+        cleanShapes=[]
+        self.json_data["armature"][0]["animation"] = get_animation_data(self,self.sprite_object,self.armature,self.armature_orig,cleanShapes)
 
         ### write and store json file
         if self.reduce_size:
@@ -1322,6 +1657,10 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
             bpy.data.objects.remove(tmp_slots_data[key]["object"], do_unlink=True)
 
         self.scene.coa_tools.nla_mode = coa_nla_mode
+
+        for stuff in cleanShapes:
+            bpy.data.objects.remove(stuff,do_unlink=True)
+        	
 
         self.report({"INFO"},"Export successful.")
         bpy.ops.ed.undo()

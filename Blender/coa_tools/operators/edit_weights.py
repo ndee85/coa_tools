@@ -113,7 +113,7 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
         self.exit_edit_weights(context)
         sprite_object.coa_tools.edit_weights = False
         sprite_object.coa_tools.edit_mode = "OBJECT"
-        bpy.context.space_data.shading.type = 'RENDERED'
+        bpy.context.space_data.shading.type = 'SOLID'
         for area in bpy.context.screen.areas:
             if area.type == "VIEW_3D":
                 area.spaces[0].overlay.show_paint_wire = False

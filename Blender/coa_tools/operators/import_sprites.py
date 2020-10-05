@@ -411,7 +411,9 @@ class COATOOLS_OT_ImportSprites(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         sprite_object = functions.get_sprite_object(context.active_object)
         
-        context.space_data.shading.type = "RENDERED"
+        context.space_data.shading.type = "SOLID"
+        context.space_data.shading.light = "FLAT"
+        context.space_data.shading.color_type = "TEXTURE"
         context.scene.view_settings.view_transform = "Standard"
         
         ext = os.path.splitext(self.filepath)[1]
