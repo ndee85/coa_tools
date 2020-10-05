@@ -677,8 +677,12 @@ def get_bone_matrix(armature,bone,relative=True):
             # mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
             mat_bone_space = pose_bone.matrix
             for parent in pose_bone.parent_recursive:
-                pose_bone_matrix = parent.matrix.inverted() @ mat_bone_space
-                mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
+                try:
+                    pose_bone_matrix = parent.matrix.inverted() @ mat_bone_space
+                    mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
+                except:
+                    pose_bone_matrix = parent.matrix @ mat_bone_space
+                    mat_bone_space = pose_bone.parent.matrix @ pose_bone.matrix
         else:
             mat_bone_space = m @ pose_bone.matrix
     #### remap matrix
@@ -1363,8 +1367,20 @@ def get_animation_data(self,sprite_object,armature,armature_orig,cleanShapes=Non
                                 else:
                                     keyframe_data["curve"] = customCurve if bake_anim == False else [0,0,1,1]
                                     
-                            keyframe_data["x"] = round(bone_scale[0],2)
-                            keyframe_data["y"] = round(bone_scale[1],2)
+                            scParmX=round(bone_scale[0],2)
+                            scParmY=round(bone_scale[1],2)
+                            if(scParmX<0 and  not ("negative" in anim.name)):
+                                minusX=abs(scParmX)
+                                minusY=abs(scParmY)
+                                abX=abs(1-minusX)
+                                abY=abs(1-minusY)
+                                if(abX>abY):
+                                    scParmY*=-1
+                                elif(abY>abX):
+                                    scParmX*=-1
+
+                            keyframe_data["x"] = scParmX
+                            keyframe_data["y"] = scParmY
 
                             if (frame in [0,anim.frame_end]) or (bone_keyframe_duration[bone.name]["last_scale"] != [keyframe_data["x"], keyframe_data["y"]]):
 
