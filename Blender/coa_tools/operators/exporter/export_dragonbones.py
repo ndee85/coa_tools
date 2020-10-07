@@ -1033,7 +1033,18 @@ def get_animation_data(self,sprite_object,armature,armature_orig,cleanShapes=Non
             anim_data = animation_data.copy()
             anim_data["duration"] = anim.frame_end
             anim_data["playTimes"] = 0
-            anim_data["name"] = anim.name
+            
+            db_anim_name=anim.name
+            if("negative" in db_anim_name):
+                splitName=db_anim_name.split("negative")
+                if len(splitName)>1:
+                    db_anim_name=splitName[0]
+            if("nonCurve" in db_anim_name):
+                splitName=db_anim_name.split("nonCurve")
+                if len(splitName)>1:
+                    db_anim_name=splitName[0]
+
+            anim_data["name"] = db_anim_name.strip()
             anim_data["bone"] = []
             anim_data["slot"] = []
             anim_data["frame"]=[]
