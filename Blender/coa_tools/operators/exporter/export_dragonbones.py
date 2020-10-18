@@ -1426,7 +1426,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
                     override = bpy.context.copy()
                     override["object"] = dupli_sprite
                     override["active_object"] = dupli_sprite
-                    bpy.ops.object.modifier_apply() # for Blender 2.9X
+                    bpy.ops.object.modifier_apply(modifier=modifier.name) # for Blender 2.9X
         for modifier in dupli_sprite.modifiers:
             dupli_sprite.modifiers.remove(modifier)
 
