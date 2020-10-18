@@ -745,7 +745,7 @@ def get_bone_data(self,armature,sprite_object,scale):
             data["transform"]["x"] = round(pos[0], 2)
             data["transform"]["y"] = round(pos[1], 2)
 
-        ### get bone angle    
+        ### get bone angle
         angle = get_bone_angle(armature,bone) if not bone_uses_constraints[pbone.name] else get_bone_angle(armature,bone,relative=False)
         bone_default_rot[bone.name] = angle
         if angle != 0:
@@ -817,7 +817,7 @@ def get_bone_weight_data(self,obj,armature):
     return data, bones
 
 ### Export Animations
-### get objs and bones that are keyed on given frame    
+### get objs and bones that are keyed on given frame
 def bone_key_on_frame(bone,frame,animation_data,type="LOCATION"): ### LOCATION, ROTATION, SCALE, ANY
     action = animation_data.action if animation_data != None else None
     type = "."+type.lower()
@@ -907,7 +907,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                             ffd_keyframe_duration[slot2.mesh.name] = {"ffd_duration":0}
                             ffd_last_frame_values[slot2.mesh.name] = None
 
-            ### check if slot has animation data. if so, store for later usage                
+            ### check if slot has animation data. if so, store for later usage
             SHAPEKEY_ANIMATION = {}
             for i in range(anim.frame_end+1):
                 frame = anim.frame_end-i
@@ -1324,6 +1324,7 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
         self.scene.coa_tools.nla_mode = coa_nla_mode
 
         self.report({"INFO"},"Export successful.")
+        bpy.ops.ed.undo_push(message="Export DragonBones")
         bpy.ops.ed.undo()
         return {"FINISHED"}
 
@@ -1392,7 +1393,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
     for obj in context.scene.objects:
         obj.select_set(False)
 
-    ### get a list of all sprites and containing slots    
+    ### get a list of all sprites and containing slots
     slots = []
     for sprite in sprites:
         if sprite.type == "MESH":
@@ -1425,7 +1426,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
                     override = bpy.context.copy()
                     override["object"] = dupli_sprite
                     override["active_object"] = dupli_sprite
-                    bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
+                    bpy.ops.object.modifier_apply() # for Blender 2.9X
         for modifier in dupli_sprite.modifiers:
             dupli_sprite.modifiers.remove(modifier)
 
@@ -1433,7 +1434,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
         for group in dupli_sprite.vertex_groups:
             dupli_sprite.vertex_groups.remove(group)
 
-        ### assign mesh as vertex group    
+        ### assign mesh as vertex group
         dupli_sprite.vertex_groups.new(name=slot["slot"].name)
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.reveal()

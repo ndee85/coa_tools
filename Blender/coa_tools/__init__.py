@@ -76,7 +76,7 @@ from . operators.exporter import export_dragonbones
 from . operators.exporter import export_creature
 
 # register
-################################## 
+##################################
 
 import traceback
 
@@ -341,7 +341,7 @@ def update_properties(scene, depsgraph):
     context = bpy.context
     for obj in bpy.data.objects:
         obj_eval = obj.evaluated_get(depsgraph)
-        
+
         if obj_eval.coa_tools.slot_index != obj_eval.coa_tools.slot_index_last:
             change_slot_mesh_data(bpy.context, obj, obj_eval)
             obj.coa_tools.slot_index_last = obj_eval.coa_tools.slot_index
@@ -370,7 +370,7 @@ def copy_icons():
 
     for icon_name in icons:
         icon_path = os.path.join(bpy.utils.user_resource("SCRIPTS", "addons"), "coa_tools", "icons", icon_name)
-        b_icon_path = os.path.join(os.path.dirname(bpy.app.binary_path), version, "datafiles", "icons", icon_name)
+        b_icon_path = os.path.join(bpy.utils.user_resource("DATAFILES"), version, "datafiles", "icons", icon_name)
 
         if os.path.isfile(b_icon_path):
             try:
