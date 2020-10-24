@@ -1289,6 +1289,10 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
 
         self.json_data = setup_json_project(self.scene.coa_tools.project_name) ### create base template
         self.json_data["armature"] =  [setup_armature_data(self.sprite_object)] ### create base armature
+        if self.scene.coa_tools.armature_change:
+            self.json_data["armature"][0]["name"] =  self.scene.coa_tools.armature_name;
+        else:
+            self.json_data["armature"][0]["name"] =  self.scene.coa_tools.project_name;
         self.json_data["armature"][0]["frameRate"] = self.scene.render.fps
         self.json_data["armature"][0]["slot"] = get_slot_data(self,self.sprites)
         self.json_data["armature"][0]["skin"] = get_skin_data(self,self.sprites,self.armature,self.scale)
@@ -1366,7 +1370,12 @@ class COATOOLS_PT_ExportPanel(bpy.types.Panel):
 
         box_col.label(text="Data Settings:")
         subrow = box_col.row(align=True)
+        subrowbis = box_col.row(align=True)
         if self.scene.coa_tools.runtime_format == "DRAGONBONES":
+            subrowbis.prop(self.scene.coa_tools, "armature_change")
+            if self.scene.coa_tools.armature_change:
+                subrowbis.prop(self.scene.coa_tools, "armature_name", text="")
+
             subrow.prop(self.scene.coa_tools, "export_bake_anim")
             if self.scene.coa_tools.export_bake_anim:
                 subrow.prop(self.scene.coa_tools, "export_bake_steps")
