@@ -272,7 +272,6 @@ class TextureAtlasGenerator:
         render_collection = bpy.data.collections.new("COA Atlas Collection")
         context.scene.collection.children.link(render_collection)
         render_collection.hide_render = False
-        
         if("COA Export Collection" in bpy.data.collections):
             bpy.data.collections["COA Export Collection"].hide_render = True
 
@@ -385,7 +384,6 @@ class TextureAtlasGenerator:
         for vert in merged_uv_obj.data.vertices:
             vert.select = True
             vert.hide = False
-            
         if("COA Export Collection" in bpy.data.collections):
             bpy.data.collections["COA Export Collection"].hide_render = False
         return atlas_img, merged_uv_obj, atlas_data

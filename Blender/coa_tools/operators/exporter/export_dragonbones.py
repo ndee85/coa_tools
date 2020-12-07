@@ -555,7 +555,7 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
             display_data["height"] = atlas_data[sprite_data_name]["height"]
 
         verts = get_mixed_vertex_data(sprite)
-        vert_coords_default[tmp_slots_data[sprite_data_name]["name"]] = verts
+        vert_coords_default[sprite_name] = verts
         display_data["vertices"] = convert_vertex_data_to_pixel_space(verts)
 
         bm = bmesh.from_edit_mesh(sprite.data)
@@ -677,12 +677,8 @@ def get_bone_matrix(armature,bone,relative=True):
             # mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
             mat_bone_space = pose_bone.matrix
             for parent in pose_bone.parent_recursive:
-                try:
-                    pose_bone_matrix = parent.matrix.inverted() @ mat_bone_space
-                    mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
-                except:
-                    pose_bone_matrix = parent.matrix @ mat_bone_space
-                    mat_bone_space = pose_bone.parent.matrix @ pose_bone.matrix
+                pose_bone_matrix = parent.matrix.inverted() @ mat_bone_space
+                mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
         else:
             mat_bone_space = m @ pose_bone.matrix
     #### remap matrix
@@ -749,7 +745,7 @@ def get_bone_data(self,armature,sprite_object,scale):
             data["transform"]["x"] = round(pos[0], 2)
             data["transform"]["y"] = round(pos[1], 2)
 
-        ### get bone angle    
+        ### get bone angle
         angle = get_bone_angle(armature,bone) if not bone_uses_constraints[pbone.name] else get_bone_angle(armature,bone,relative=False)
         bone_default_rot[bone.name] = angle
         if angle != 0:
@@ -821,7 +817,7 @@ def get_bone_weight_data(self,obj,armature):
     return data, bones
 
 ### Export Animations
-### get objs and bones that are keyed on given frame    
+### get objs and bones that are keyed on given frame
 def bone_key_on_frame(bone,frame,animation_data,type="LOCATION"): ### LOCATION, ROTATION, SCALE, ANY
     action = animation_data.action if animation_data != None else None
     type = "."+type.lower()
@@ -1593,8 +1589,7 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
         bpy.ops.ed.undo_push(message="Export to Dragonbones")
         global tmp_slots_data
         tmp_slots_data = {}
-        
-        
+
         self.get_init_state(context)
         self.scene = context.scene
 
@@ -1650,6 +1645,10 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
 
         self.json_data = setup_json_project(self.scene.coa_tools.project_name) ### create base template
         self.json_data["armature"] =  [setup_armature_data(self.sprite_object)] ### create base armature
+        if self.scene.coa_tools.armature_change:
+            self.json_data["armature"][0]["name"] =  self.scene.coa_tools.armature_name;
+        else:
+            self.json_data["armature"][0]["name"] =  self.scene.coa_tools.project_name;
         self.json_data["armature"][0]["frameRate"] = self.scene.render.fps
         self.json_data["armature"][0]["slot"] = get_slot_data(self,self.sprites)
         self.json_data["armature"][0]["skin"] = get_skin_data(self,self.sprites,self.armature,self.scale)
@@ -1659,8 +1658,7 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
             self.armature.data.pose_position = "POSE"
             self.armature_orig.data.pose_position = "POSE"
         self.json_data["frameRate"] = self.scene.render.fps
-        cleanShapes=[]
-        self.json_data["armature"][0]["animation"] = get_animation_data(self,self.sprite_object,self.armature,self.armature_orig,cleanShapes)
+        self.json_data["armature"][0]["animation"] = get_animation_data(self,self.sprite_object,self.armature,self.armature_orig)
 
         ### write and store json file
         if self.reduce_size:
@@ -1685,11 +1683,8 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
 
         self.scene.coa_tools.nla_mode = coa_nla_mode
 
-        for stuff in cleanShapes:
-            bpy.data.objects.remove(stuff,do_unlink=True)
-        	
-
         self.report({"INFO"},"Export successful.")
+        bpy.ops.ed.undo_push(message="Export DragonBones")
         bpy.ops.ed.undo()
         return {"FINISHED"}
 
@@ -1731,7 +1726,12 @@ class COATOOLS_PT_ExportPanel(bpy.types.Panel):
 
         box_col.label(text="Data Settings:")
         subrow = box_col.row(align=True)
+        subrowbis = box_col.row(align=True)
         if self.scene.coa_tools.runtime_format == "DRAGONBONES":
+            subrowbis.prop(self.scene.coa_tools, "armature_change")
+            if self.scene.coa_tools.armature_change:
+                subrowbis.prop(self.scene.coa_tools, "armature_name", text="")
+
             subrow.prop(self.scene.coa_tools, "export_bake_anim")
             if self.scene.coa_tools.export_bake_anim:
                 subrow.prop(self.scene.coa_tools, "export_bake_steps")
@@ -1758,7 +1758,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
     for obj in context.scene.objects:
         obj.select_set(False)
 
-    ### get a list of all sprites and containing slots    
+    ### get a list of all sprites and containing slots
     slots = []
     for sprite in sprites:
         if sprite.type == "MESH":
@@ -1791,7 +1791,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
                     override = bpy.context.copy()
                     override["object"] = dupli_sprite
                     override["active_object"] = dupli_sprite
-                    bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
+                    bpy.ops.object.modifier_apply(modifier=modifier.name) # for Blender 2.9X
         for modifier in dupli_sprite.modifiers:
             dupli_sprite.modifiers.remove(modifier)
 
@@ -1799,7 +1799,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
         for group in dupli_sprite.vertex_groups:
             dupli_sprite.vertex_groups.remove(group)
 
-        ### assign mesh as vertex group    
+        ### assign mesh as vertex group
         dupli_sprite.vertex_groups.new(name=slot["slot"].name)
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.reveal()

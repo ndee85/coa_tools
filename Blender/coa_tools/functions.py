@@ -17,7 +17,7 @@ Created by Andreas Esau
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-    
+
 import bpy
 import bpy_extras
 import bpy_extras.view3d_utils
@@ -54,7 +54,7 @@ def set_uv_image(obj):
     if len(data.materials) > 0:
         mat = data.materials[0]
         tex = [slot.texture for slot in mat.texture_slots if slot != None and slot.texture.type == "IMAGE"][0]
-        img = tex.image if tex.image != None else None   
+        img = tex.image if tex.image != None else None
         if img != None:
             for uv_vert in obj.data.uv_textures[0].data:
                 uv_vert.image = img
@@ -66,7 +66,7 @@ def draw_sculpt_ui(self,context,layout):
         toolsettings = context.tool_settings
         settings = toolsettings.sculpt
         brush = settings.brush
-        
+
         col = layout.column(align=True)
         col.separator()
         if obj.data.shape_keys == None:
@@ -74,11 +74,11 @@ def draw_sculpt_ui(self,context,layout):
         subrow = col.row(align=True)
         subrow.prop(obj.coa_tools,"selected_shapekey",text="")
         op = subrow.operator("coa_tools.shapekey_add",icon="FILE_NEW",text="")
-        
+
         if obj.data.shape_keys != None and len(obj.data.shape_keys.key_blocks) > 0:
             op = subrow.operator("coa_tools.shapekey_rename",icon="OUTLINER_DATA_FONT",text="")
             op = subrow.operator("coa_tools.shapekey_remove",icon="X",text="")
-            
+
         if obj.data.shape_keys != None:
             shapekey_index = int(obj.coa_tools.selected_shapekey)
             if shapekey_index > 0:
@@ -87,40 +87,40 @@ def draw_sculpt_ui(self,context,layout):
                 subrow.prop(active_shapekey,"value")
 
                 subrow.prop(obj,"show_only_shape_key", text="",icon="UNPINNED")
-        
+
         col = layout.column(align=False)
         subrow = col.row(align=True)
         subrow.prop(obj,"show_wire",toggle=True,icon="MESH_DATA")
         subrow.prop(obj,"show_all_edges",toggle=True)
-        
+
         if not context.particle_edit_object:
             col = layout.split().column()
             col.template_ID_preview(settings, "brush", new="brush.add", rows=3, cols=8)
-            
+
         row = layout.row(align=True)
         settings = toolsettings.unified_paint_settings if toolsettings.unified_paint_settings.use_unified_size else toolsettings.sculpt.brush
-        
+
         if settings.use_locked_size:
             icon = "UNLOCKED"
         elif not settings.use_locked_size:
             icon = "LOCKED"
-        
+
         col = layout.column(align=True)
-        
-        subrow = col.row(align=True)        
+
+        subrow = col.row(align=True)
         subrow.prop(settings,"use_locked_size",text="",toggle=True,icon=icon)
-        subrow.prop(settings,"size",slider=True)    
+        subrow.prop(settings,"size",slider=True)
         subrow.prop(settings,"use_unified_size",text="")
         col.prop(settings,"strength")
-        
-        
+
+
         row = layout.row(align=True)
         row.label(text="Symmetry:")
         row = layout.row(align=True)
         row.prop(toolsettings.sculpt,"use_symmetry_x",text="X",toggle=True)
         row.prop(toolsettings.sculpt,"use_symmetry_y",text="Y",toggle=True)
         row.prop(toolsettings.sculpt,"use_symmetry_z",text="Z",toggle=True)
-        
+
 
         brush = toolsettings.sculpt.brush
 
@@ -134,7 +134,7 @@ def draw_sculpt_ui(self,context,layout):
         row.operator("brush.curve_preset", icon='SHARPCURVE', text="").shape = 'SHARP'
         row.operator("brush.curve_preset", icon='LINCURVE', text="").shape = 'LINE'
         row.operator("brush.curve_preset", icon='NOCURVE', text="").shape = 'MAX'
-         
+
 
 def operator_exists(idname):
     op_name = idname.split(".")
@@ -146,7 +146,7 @@ def remove_base_mesh(obj):
     bm = bmesh.from_edit_mesh(obj.data)
     bm.verts.ensure_lookup_table()
     verts = []
-        
+
     if "coa_base_sprite" in obj.vertex_groups:
         v_group_idx = obj.vertex_groups["coa_base_sprite"].index
         for i,vert in enumerate(obj.data.vertices):
@@ -156,19 +156,19 @@ def remove_base_mesh(obj):
                     break
 
     bmesh.ops.delete(bm,geom=verts,context=1)
-    bm = bmesh.update_edit_mesh(obj.data) 
+    bm = bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode="OBJECT")
 
 def fix_bone_roll(armature):
     mode = armature.mode
     bpy.ops.object.mode_set(mode="EDIT")
-    
+
     ### show all bone layers
     layers = []
     for i,layer in enumerate(armature.data.layers):
         layers.append(layer)
         armature.data.layers[i] = True
-    
+
     ### store bone selection and store intial state
     hidden_bones = []
     locked_bones = []
@@ -177,45 +177,45 @@ def fix_bone_roll(armature):
         if bone.hide:
             hidden_bones.append(bone)
         bone.hide = False
-        
+
         if bone.hide_select:
-            locked_bones.append(bone)    
+            locked_bones.append(bone)
         bone.hide_select = False
-            
+
         if bone.select and bone.select_head and bone.select_tail:
             selected_edit_bones.append(bone)
-        
+
         bone.select = True
         bone.select_head = True
         bone.select_tail = True
-    
-    ### align bone roll    
+
+    ### align bone roll
     bpy.ops.armature.calculate_roll(type='GLOBAL_POS_Y')
-    
+
     ### restore bone selection, hide and hide_select
     for bone in armature.data.edit_bones:
         if bone in hidden_bones:
             bone.hide = True
         if bone in locked_bones:
-            bone.hide_select = True    
-        
+            bone.hide_select = True
+
         if bone not in selected_edit_bones:
             bone.select = False
             bone.select_head = False
             bone.select_tail = False
-    
+
     ### restore bone layer visibility
     for i,layer in enumerate(layers):
         armature.data.layers[i] = layer
-    
-    ### change back to previous mode        
+
+    ### change back to previous mode
     bpy.ops.object.mode_set(mode=mode)
-    
+
 
 def set_weights(self,context,obj):
     if len(context.selected_bones) == 0:
         return {'RUNNING_MODAL'}
-    
+
     self.set_waits = True
     bone_data = []
     orig_armature = self.armature#context.active_object
@@ -223,11 +223,11 @@ def set_weights(self,context,obj):
     for weight in obj.vertex_groups:
         if weight.name in orig_armature.data.bones:
             obj.vertex_groups.remove(weight)
-    ###         
+    ###
     use_deform = []
     bone_pos = {}
     selected_bones = []
-    
+
     for i,bone in enumerate(orig_armature.data.edit_bones):
         if bone.select and (bone.select_head or bone.select_tail):
             selected_bones.append(bone)
@@ -241,15 +241,15 @@ def set_weights(self,context,obj):
             orig_armature.data.bones[i].use_deform = False
     orig_armature.select_set(True)
     obj.select_set(True)
-    
+
     #return{'FINISHED'}
-    
+
     parent = bpy.data.objects[obj.parent.name]
     obj_orig_location = Vector(obj.location)
     obj.location[1] = 0.00001
     bpy.ops.object.parent_set(type='ARMATURE_AUTO')
     obj.location = obj_orig_location
-    
+
     for bone in bone_pos:
         bone.tail[1] = bone_pos[bone]["tail"]
         bone.head[1] = bone_pos[bone]["head"]
@@ -269,11 +269,11 @@ def set_weights(self,context,obj):
     orig_armature.select_set(True)
     context.view_layer.objects.active = orig_armature
     obj.select_set(False)
-    
+
     bpy.ops.object.mode_set(mode='EDIT')
     self.set_waits = False
-    
-    return {'RUNNING_MODAL'} 
+
+    return {'RUNNING_MODAL'}
 
 def hide_base_sprite(obj):
     context = bpy.context
@@ -315,28 +315,28 @@ def hide_base_sprite(obj):
             bmesh.update_edit_mesh(me)
             bpy.ops.object.mode_set(mode=orig_mode)
         context.view_layer.objects.active = selected_object
-    
+
 def get_uv_from_vert(uv_layer, v):
     for l in v.link_loops:
         if v.select:
             uv_data = l[uv_layer]
             return uv_data
-            
+
 def update_uv_unwrap(context):
     obj = context.active_object
     me = obj.data
     bm = bmesh.from_edit_mesh(me)
-    
+
     ### pin uv boundary vertex
     uv_layer = bm.loops.layers.uv.active
     for vert in bm.verts:
-        
+
         uv_vert = get_uv_from_vert(uv_layer, vert)
         if uv_vert != None:
             pass
 
-    bmesh.update_edit_mesh(me)      
-    
+    bmesh.update_edit_mesh(me)
+
 
 
 def clamp(n, minn, maxn):
@@ -380,7 +380,7 @@ def unwrap_with_bounds(obj,uv_idx):
             uv_data = l[uv_layer]
             uv_data.uv[0] = (bm.verts[i].co[0] * scale_x) - offset[0]
             uv_data.uv[1] = (bm.verts[i].co[2] * scale_z)+1 - offset[1]
-   
+
     bmesh.update_edit_mesh(me)
     bm.free()
     bpy.ops.object.mode_set(mode="OBJECT")
@@ -391,7 +391,7 @@ def get_local_dimension(obj):
         x1 = -10000000000 * 10000000000
         y0 = 10000000000 * 10000000000
         y1 = -100000000000 * 10000000000
-        
+
         for vert in obj.data.vertices:
             if vert.co[0] < x0:
                 x0 = vert.co[0]
@@ -401,7 +401,7 @@ def get_local_dimension(obj):
                 y0 = vert.co[2]
             if vert.co[2] > y1:
                 y1 = vert.co[2]
-                
+
         offset = [x0, y1]
         return [(x1-x0), (y1 - y0), offset]
 
@@ -432,22 +432,22 @@ def check_name(name_array,name):
 
 def create_action(context,item=None,obj=None):
     sprite_object = get_sprite_object(context.active_object)
-    
+
     if len(sprite_object.coa_tools.anim_collections) < 3:
         bpy.ops.coa_tools.add_animation_collection()
-    
+
     if item == None:
         item = sprite_object.coa_tools.anim_collections[sprite_object.coa_tools.anim_collections_index]
     if obj == None:
         obj = context.active_object
-        
+
     action_name = item.name + "_" + obj.name
-    
+
     if action_name not in bpy.data.actions:
         action = bpy.data.actions.new(action_name)
     else:
         action = bpy.data.actions[action_name]
-        
+
     action.use_fake_user = True
     if obj.animation_data == None:
         obj.animation_data_create()
@@ -473,13 +473,13 @@ def set_direction(obj):
     else:
         if obj.scale.x < 0:
             obj.scale.x *= -1
-        
+
 def set_action(context,item=None):
     sprite_object = get_sprite_object(context.active_object)
     if item == None:
         index = min(len(sprite_object.coa_tools.anim_collections) - 1, sprite_object.coa_tools.anim_collections_index)
         item = sprite_object.coa_tools.anim_collections[index]
-    
+
     children = get_children(context,sprite_object,ob_list=[])
 
     animation_objects = []
@@ -492,7 +492,7 @@ def set_action(context,item=None):
         clear_pose(child)
         if child.animation_data != None:
             child.animation_data.action = None
-            
+
         if child.type == "ARMATURE" and item.name == "Restpose":
             for bone in child.pose.bones:
                 bone.scale = Vector((1,1,1))
@@ -507,8 +507,8 @@ def set_action(context,item=None):
             action = None
             if action_name in bpy.data.actions:
                 action = bpy.data.actions[action_name]
-            if action != None:    
-                action.use_fake_user = True    
+            if action != None:
+                action.use_fake_user = True
                 if child.animation_data == None:
                     child.animation_data_create()
                 child.animation_data.action = action
@@ -534,7 +534,7 @@ def set_local_view(local):
             else:
                 if area.spaces.active.local_view != None:
                     bpy.ops.view3d.localview(override)
-                        
+
 
 def actions_callback(self,context):
     actions = []
@@ -550,7 +550,7 @@ def create_armature(context):
     obj = bpy.context.active_object
     sprite_object = get_sprite_object(obj)
     armature = get_armature(sprite_object)
-    
+
     if armature != None:
         context.view_layer.objects.active = armature
         armature.select = True
@@ -573,10 +573,10 @@ def lock_view(screen, lock):
                 if space.type == "VIEW_3D":
                     region = space.region_3d
                     if lock:
-                        region.view_rotation = Quaternion((0.7071,0.7071,-0.0,-0.0))                        
+                        region.view_rotation = Quaternion((0.7071,0.7071,-0.0,-0.0))
                         region.lock_rotation = True
                     else:
-                        region.lock_rotation = False    
+                        region.lock_rotation = False
 
 
 def set_view(scene,mode):
@@ -609,11 +609,11 @@ def set_view(scene,mode):
 def set_middle_mouse_move(enable):
     km = bpy.context.window_manager.keyconfigs.addon.keymaps["3D View"]
     km.keymap_items["view3d.move"].active = enable
-    
+
 def assign_tex_to_uv(image,uv):
     for i,data in enumerate(uv.data):
         uv.data[i].image = image
-        
+
 def set_bone_group(self, armature, pose_bone,group = "ik_group" ,theme = "THEME09"):
     new_group = None
     if group not in armature.pose.bone_groups:
@@ -623,10 +623,10 @@ def set_bone_group(self, armature, pose_bone,group = "ik_group" ,theme = "THEME0
         new_group = armature.pose.bone_groups[group]
     pose_bone.bone_group = new_group
 
-last_sprite_object = None        
+last_sprite_object = None
 def get_sprite_object(obj):
     global last_sprite_object
-    
+
     context = bpy.context
     if obj != None:
         if "sprite_object" in obj.coa_tools:
@@ -634,19 +634,19 @@ def get_sprite_object(obj):
             return obj
         elif obj.parent != None:
             return get_sprite_object(obj.parent)
-    
+
     if last_sprite_object != None and last_sprite_object in bpy.data.objects:
         return bpy.data.objects[last_sprite_object]
-    return None 
-        
+    return None
+
 def get_armature(obj):
     if obj != None and obj.type != "ARMATURE":
         for child in obj.children:
             if child.type == "ARMATURE":
                 return child
     else:
-        return obj        
-    return None 
+        return obj
+    return None
 
 def get_bounds_and_center(obj):
     sprite_center = Vector((0,0,0))
@@ -658,26 +658,26 @@ def get_bounds_and_center(obj):
             bounds.append(world_corner)
     sprite_center = sprite_center * 0.125
     return[sprite_center,bounds]
-    
-    
+
+
 def ray_cast(start,end,list=[]):
     end = end - start
-    result = bpy.context.scene.ray_cast(bpy.context.view_layer, start, end)
+    result = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, start, end)
 
     result = [result[0],result[4],result[5],result[1],result[2]]
-    
+
     if result[0]:
         if result not in list:
             list.append(result)
         else:
-            return list    
-        
+            return list
+
         dir_vec = (end - start).normalized()
         new_start = result[3] + (dir_vec * 0.000001)
         return ray_cast(new_start,end,list)
     else:
         return list
-    
+
 def lock_sprites(context, obj, lock):
     for child in obj.children:
         if child.type == "MESH":
@@ -687,10 +687,10 @@ def lock_sprites(context, obj, lock):
                 if child == context.view_layer.objects.active:
                     context.view_layer.objects.active = child.parent
             else:
-                child.hide_select = False   
+                child.hide_select = False
         if len(child.children) > 0:
             return lock_sprites(context,child,lock)
-    return      
+    return
 
 
 def get_children(context,obj,ob_list=[]):
@@ -739,7 +739,7 @@ def change_slot_mesh_data(context, obj, obj_eval=None):
         if obj_eval == None:
             obj_eval = obj
         idx = max(min(obj_eval.coa_tools.slot_index,len(obj.coa_tools.slot)-1),0)
-        
+
         slot = obj.coa_tools.slot[idx]
         obj = slot.id_data
         obj.data = slot.mesh
@@ -748,7 +748,7 @@ def change_slot_mesh_data(context, obj, obj_eval=None):
             if slot != slot2:
                 slot2["active"] = False
             else:
-                slot2["active"] = True 
+                slot2["active"] = True
         if "coa_base_sprite" in obj.modifiers:
             if slot.mesh.coa_tools.hide_base_sprite:
                 obj.modifiers["coa_base_sprite"].show_render = True
@@ -778,7 +778,7 @@ def display_children(self, context, obj):
         sprite_object = get_sprite_object(obj)
         children = get_children(context,sprite_object,ob_list=[])
         armature = get_armature(sprite_object)
-        
+
         list1 = []
         list2 = []
         for child in children:
@@ -796,9 +796,9 @@ def display_children(self, context, obj):
                 row.prop(sprite_object.coa_tools, "favorite",text="",icon="SOLO_ON")
             else:
                 row.prop(sprite_object.coa_tools, "favorite",text="",icon="SOLO_OFF")
-        
+
         col = box.column(align=True)
-        
+
         current_display_item = 0
         ### Sprite Objects display for all that are in active Scene
         disable_list = sprite_object.coa_tools.edit_mesh or sprite_object.coa_tools.edit_armature or sprite_object.coa_tools.edit_weights or sprite_object.coa_tools.edit_shapekey
@@ -806,7 +806,7 @@ def display_children(self, context, obj):
         for obj2 in context.view_layer.objects:
             if get_sprite_object(obj2) == obj2:
                 in_range = current_display_item in range(context.scene.coa_tools.display_page * context.scene.coa_tools.display_length , context.scene.coa_tools.display_page * context.scene.coa_tools.display_length + context.scene.coa_tools.display_length)
-                
+
                 if in_range or context.scene.coa_tools.display_all:
                     row = col.row(align=True)
                     subrow = row.row(align=True)
@@ -840,34 +840,34 @@ def display_children(self, context, obj):
                     op = subrow.operator("coa_tools.view_sprite",icon="ZOOM_SELECTED",text="",emboss=False)
                     op.type = "VIEW_ALL"
                     op.name = obj2.name
-                    
+
                     row2 = subrow.row()
                     if not obj2.coa_tools.change_z_ordering:
                         row2.active = False
                     row2.prop(obj2.coa_tools,"change_z_ordering",text="",icon="SORTALPHA",emboss=False)
-                
+
                 current_display_item += 1
                 if obj2 == sprite_object:
                     draw_children(self, context, sprite_object, layout, box, row, col, children, obj, current_display_item, disable_list)
-            
+
 
 def favorite_bones(armature):
     for bone in armature.data.bones:
         if bone.coa_tools.favorite:
             return True
     return False
-            
+
 def filter_bone_name(armature,filter):
     for bone in armature.data.bones:
         if filter.upper() in bone.name.upper():
             return True
     return False
 
-def draw_children(self,context,sprite_object,layout,box,row,col,children,obj,current_display_item, disable_list):    
+def draw_children(self,context,sprite_object,layout,box,row,col,children,obj,current_display_item, disable_list):
     obj = get_sprite_object(obj)
     active_collection = bpy.data.collections[context.scene.coa_tools.active_collection]
     ### Sprite Object Children Display
-    
+
     if disable_list:
         if sprite_object.coa_tools.edit_mesh:
             box.row().prop(sprite_object.coa_tools, "edit_mesh", text="", toggle=True, icon="LOOP_BACK")
@@ -878,8 +878,8 @@ def draw_children(self,context,sprite_object,layout,box,row,col,children,obj,cur
         if sprite_object.coa_tools.edit_shapekey:
             box.row().prop(sprite_object.coa_tools, "edit_shapekey", text="", toggle=True, icon="LOOP_BACK")
 
-    
-        
+
+
     if sprite_object != None and sprite_object.coa_tools.show_children:
         children = sorted(children, key=lambda x: x.location[1] if type(x) == bpy.types.Object else x.name,reverse=False)
         children = sorted(children, key=lambda x: x.type if type(x) == bpy.types.Object else x.name,reverse=False)
@@ -1040,7 +1040,7 @@ def draw_bone_entry(self,bone,row,col,child,indentation_level=0):
     row.separator()
     icon = "LAYER_USED"
     if bone.select:
-        icon = "LAYER_ACTIVE"   
+        icon = "LAYER_ACTIVE"
     row.label(text="",icon=icon)
     row.label(text="",icon="BONE_DATA")
     bone_name = ""+bone.name
