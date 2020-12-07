@@ -76,7 +76,7 @@ from . operators.exporter import export_dragonbones
 from . operators.exporter import export_creature
 
 # register
-################################## 
+##################################
 
 import traceback
 
@@ -332,7 +332,8 @@ def set_shading(dummy):
             for screen in bpy.data.screens:
                 for area in screen.areas:
                     if area.type == "VIEW_3D":
-                        area.spaces[0].shading.type = "RENDERED"
+                        area.spaces[0].shading.type = "SOLID"
+                        area.spaces[0].shading.light = "FLAT"
             break
     bpy.ops.coa_tools.updater_check_now()
 
@@ -341,7 +342,7 @@ def update_properties(scene, depsgraph):
     context = bpy.context
     for obj in bpy.data.objects:
         obj_eval = obj.evaluated_get(depsgraph)
-        
+
         if obj_eval.coa_tools.slot_index != obj_eval.coa_tools.slot_index_last:
             change_slot_mesh_data(bpy.context, obj, obj_eval)
             obj.coa_tools.slot_index_last = obj_eval.coa_tools.slot_index
@@ -370,7 +371,7 @@ def copy_icons():
 
     for icon_name in icons:
         icon_path = os.path.join(bpy.utils.user_resource("SCRIPTS", "addons"), "coa_tools", "icons", icon_name)
-        b_icon_path = os.path.join(os.path.dirname(bpy.app.binary_path), version, "datafiles", "icons", icon_name)
+        b_icon_path = os.path.join(bpy.utils.user_resource("DATAFILES"), "icons", icon_name)
 
         if os.path.isfile(b_icon_path):
             try:
