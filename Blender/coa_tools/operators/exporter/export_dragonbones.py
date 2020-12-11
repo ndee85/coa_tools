@@ -1323,8 +1323,12 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
 
         self.scene.coa_tools.nla_mode = coa_nla_mode
 
-        self.report({"INFO"},"Export successful.")
+        # cleanup scene and add an undo history step
+        bpy.ops.ed.undo_push(message="Export Creature")
         bpy.ops.ed.undo()
+        bpy.ops.ed.undo_push(message="Export Creature")
+
+        self.report({"INFO"},"Export successful.")
         return {"FINISHED"}
 
 
@@ -1425,7 +1429,10 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
                     override = bpy.context.copy()
                     override["object"] = dupli_sprite
                     override["active_object"] = dupli_sprite
-                    bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
+                    if b_version_smaller_than((2,90,0)):
+                        bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
+                    else:
+                        bpy.ops.object.modifier_apply(override, modifier=modifier.name)
         for modifier in dupli_sprite.modifiers:
             dupli_sprite.modifiers.remove(modifier)
 
