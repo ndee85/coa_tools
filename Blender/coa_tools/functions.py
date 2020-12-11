@@ -110,7 +110,7 @@ def draw_sculpt_ui(self,context,layout):
         subrow = col.row(align=True)        
         subrow.prop(settings,"use_locked_size",text="",toggle=True,icon=icon)
         subrow.prop(settings,"size",slider=True)    
-        subrow.prop(settings,"use_pressure_size",text="")
+        subrow.prop(settings,"use_unified_size",text="")
         col.prop(settings,"strength")
         
         
@@ -277,43 +277,44 @@ def set_weights(self,context,obj):
 
 def hide_base_sprite(obj):
     context = bpy.context
-    selected_object = bpy.data.objects[context.active_object.name]
-    if "sprite" in obj.coa_tools and obj.type == "MESH":
-        orig_mode = obj.mode
-        context.view_layer.objects.active = obj
-        bpy.ops.object.mode_set(mode="OBJECT")
-        bpy.ops.object.mode_set(mode="EDIT")
-        me = obj.data
-        bm = bmesh.from_edit_mesh(me)
-        bm.verts.ensure_lookup_table()
-        
-        vertex_idxs = []
-        if "coa_base_sprite" in obj.vertex_groups:
-            v_group_idx = obj.vertex_groups["coa_base_sprite"].index
-            for i,vert in enumerate(obj.data.vertices):
-                for g in vert.groups:
-                    if g.group == v_group_idx:
-                        vertex_idxs.append(i)
-                    
-        for idx in vertex_idxs:
-            vert = bm.verts[idx]
-            vert.hide = True
-            vert.select = False
-            for edge in vert.link_edges:
-                edge.hide = True
-                edge.select = False
-            for face in vert.link_faces:
-                face.hide = obj.data.coa_tools.hide_base_sprite
-                face.select = False
-                
-        if "coa_base_sprite" in obj.modifiers:
-            mod = obj.modifiers["coa_base_sprite"]
-            mod.show_viewport = obj.data.coa_tools.hide_base_sprite
-            mod.show_render = obj.data.coa_tools.hide_base_sprite
-            
-        bmesh.update_edit_mesh(me)               
-        bpy.ops.object.mode_set(mode=orig_mode)                      
-    context.view_layer.objects.active = selected_object
+    selected_object = bpy.data.objects[context.active_object.name] if bpy.context.active_object != None else None
+    if selected_object != None:
+        if obj.type == "MESH" and "coa_base_sprite" in obj.vertex_groups:
+            orig_mode = obj.mode
+            context.view_layer.objects.active = obj
+            bpy.ops.object.mode_set(mode="OBJECT")
+            bpy.ops.object.mode_set(mode="EDIT")
+            me = obj.data
+            bm = bmesh.from_edit_mesh(me)
+            bm.verts.ensure_lookup_table()
+
+            vertex_idxs = []
+            if "coa_base_sprite" in obj.vertex_groups:
+                v_group_idx = obj.vertex_groups["coa_base_sprite"].index
+                for i,vert in enumerate(obj.data.vertices):
+                    for g in vert.groups:
+                        if g.group == v_group_idx:
+                            vertex_idxs.append(i)
+
+            for idx in vertex_idxs:
+                vert = bm.verts[idx]
+                vert.hide = True
+                vert.select = False
+                for edge in vert.link_edges:
+                    edge.hide = True
+                    edge.select = False
+                for face in vert.link_faces:
+                    face.hide = obj.data.coa_tools.hide_base_sprite
+                    face.select = False
+
+            if "coa_base_sprite" in obj.modifiers:
+                mod = obj.modifiers["coa_base_sprite"]
+                mod.show_viewport = obj.data.coa_tools.hide_base_sprite
+                mod.show_render = obj.data.coa_tools.hide_base_sprite
+
+            bmesh.update_edit_mesh(me)
+            bpy.ops.object.mode_set(mode=orig_mode)
+        context.view_layer.objects.active = selected_object
     
 def get_uv_from_vert(uv_layer, v):
     for l in v.link_loops:
@@ -517,7 +518,7 @@ def set_action(context,item=None):
 def create_armature_parent(context):
     sprite = context.active_object
     armature = get_armature(get_sprite_object(sprite))
-    armature.select = True
+    armature.select_set(True)
     context.view_layer.objects.active = armature
     bpy.ops.object.parent_set(type='ARMATURE_NAME')
     context.view_layer.objects.active = sprite
@@ -731,12 +732,13 @@ def set_alpha(obj, context, alpha):
             coa_material_node.inputs["Alpha"].default_value = alpha
 
 
-def change_slot_mesh_data(context,obj):
+def change_slot_mesh_data(context, obj, obj_eval=None):
     if len(obj.coa_tools.slot) > 0:
         slot_len = len(obj.coa_tools.slot)-1
         obj.coa_tools["slot_index"] = min(obj.coa_tools.slot_index,max(0,len(obj.coa_tools.slot)-1))
-        
-        idx = max(min(obj.coa_tools.slot_index,len(obj.coa_tools.slot)-1),0)
+        if obj_eval == None:
+            obj_eval = obj
+        idx = max(min(obj_eval.coa_tools.slot_index,len(obj.coa_tools.slot)-1),0)
         
         slot = obj.coa_tools.slot[idx]
         obj = slot.id_data

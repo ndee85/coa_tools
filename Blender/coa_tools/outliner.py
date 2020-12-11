@@ -4,22 +4,45 @@ from bpy.props import BoolProperty, FloatVectorProperty, IntProperty, FloatPrope
 from . import functions
 from bpy.app.handlers import persistent
 
-def select_outliner_object(self, context):
-    selected_item = self.outliner[self.outliner_index]
-    if selected_item.entry_type in ["SPRITE", "OBJECT"]:
-        sprite_object = bpy.data.objects[selected_item.sprite_object_name]
-        edit_mode_active = sprite_object != None and (
-        sprite_object.coa_tools.edit_mesh or sprite_object.coa_tools.edit_armature or sprite_object.coa_tools.edit_weights or sprite_object.coa_tools.edit_shapekey)
-        if not edit_mode_active:
+def selected_update(self, context):
+    if self.entry_type in ["SPRITE", "OBJECT"]:
+        obj = bpy.data.objects[self.display_name]
+        if self.selected:
+            obj.select_set(True)
+        else:
+            obj.select_set(False)
+    elif self.entry_type in ["BONE"]:
+        obj = bpy.data.objects[self.name]
+        context.view_layer.objects.active = obj
+        if obj.mode == "OBJECT":
+            bpy.ops.object.mode_set(mode="POSE")
+        bone = obj.data.bones[self.display_name]
+        if self.selected:
+            bone.select = True
+            bone.select_head = True
+            bone.select_tail = True
+        else:
+            bone.select = False
+            bone.select_head = False
+            bone.select_tail = False
 
-            selected_object = context.view_layer.objects[selected_item.name]
-            for obj in context.view_layer.objects:
-                if obj in sprite_object.children:
-                    obj.select_set(False)
-            for item in self.outliner:
-                if item.selected:
-                    bpy.data.objects[item.name].select_set(True)
-            context.view_layer.objects.active = selected_object
+def select_outliner_object(self, context):
+    if self.outliner_index < len(self.outliner)-1:
+        selected_item = self.outliner[self.outliner_index]
+        if selected_item.entry_type in ["SPRITE", "OBJECT"]:
+            sprite_object = bpy.data.objects[selected_item.sprite_object_name]
+            edit_mode_active = sprite_object != None and (
+            sprite_object.coa_tools.edit_mesh or sprite_object.coa_tools.edit_armature or sprite_object.coa_tools.edit_weights or sprite_object.coa_tools.edit_shapekey)
+            if not edit_mode_active:
+
+                selected_object = context.view_layer.objects[selected_item.name]
+                for obj in context.view_layer.objects:
+                    if obj in sprite_object.children:
+                        obj.select_set(False)
+                for item in self.outliner:
+                    if item.selected:
+                        bpy.data.objects[item.name].select_set(True)
+                context.view_layer.objects.active = selected_object
 
 def set_hide(self, value):
     if self.entry_type in ["OBJECT", "SPRITE", "BONE_PARENT"]:
@@ -28,6 +51,9 @@ def set_hide(self, value):
         selected_object.hide_viewport = value
         selected_object.hide_render = value
         self["hide"] = value
+        if self.id_data.coa_tools.outliner[self.id_data.coa_tools.outliner_index].name == self.name:
+            selected_object.select_set(not value)
+
     elif self.entry_type in ["BONE"]:
         selected_object = bpy.context.view_layer.objects[self.name]
         bone = selected_object.data.bones[self.display_name]
@@ -97,7 +123,7 @@ class COAOutliner(bpy.types.PropertyGroup):
     entry_type: StringProperty(default="SPRITE") # ["SPRITE", "OBJECT","SLOT", "BONE", "BONE_PARENT"]
     hierarchy_level: IntProperty()
     slot_type: StringProperty()
-    selected: BoolProperty(default=False)
+    selected: BoolProperty(default=False, update=selected_update)#, update=select_object)
     active: BoolProperty(default=False)
     hide: BoolProperty(default=False, set=set_hide, get=get_hide)
     hide_select: BoolProperty(default=False, set=set_hide_select, get=get_hide_select)
@@ -146,7 +172,6 @@ class COATOOLS_UL_Outliner(bpy.types.UIList):
                 object_icon = "LIGHT"
 
             if item.entry_type not in ["SLOT","BONE_PARENT"]:
-                # row_left.label(text="", icon=selected_icon)
                 row_left.prop(item, "selected", text="", icon=selected_icon)
             else:
                 row_left.label(text="", icon="NONE")

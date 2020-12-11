@@ -213,7 +213,7 @@ class COATOOLS_PT_ObjectProperties(bpy.types.Panel):
                 row = layout.row(align=True)
                 row.label(text="Sprite Properties:")
 
-            if obj != None and obj.type == "MESH" and "sprite" in obj.coa_tools and "coa_base_sprite" in obj.modifiers:
+            if obj != None and obj.type == "MESH" and "coa_base_sprite" in obj.modifiers:
                 row = layout.row(align=True)
                 row.prop(obj.data.coa_tools, 'hide_base_sprite', text="Hide Base Sprite")
                 if len(obj.data.vertices) > 4 and obj.data.coa_tools.hide_base_sprite == False:
@@ -453,22 +453,19 @@ class COATOOLS_PT_Tools(bpy.types.Panel):
                     row.prop(tool_settings.unified_paint_settings, "weight")
                     row = col.row(align=True)
                     row.prop(tool_settings.unified_paint_settings, "size")
-                    row.prop(tool_settings.unified_paint_settings, "use_pressure_size", text="")
+                    row.prop(tool_settings.unified_paint_settings, "use_unified_size", text="")
                     row = col.row(align=True)
                     row.prop(tool_settings.unified_paint_settings, "strength")
-                    row.prop(tool_settings.unified_paint_settings, "use_pressure_strength", text="")
+                    row.prop(tool_settings.unified_paint_settings, "use_unified_strength", text="")
                     row = col.row(align=True)
                     row.prop(tool_settings, "use_auto_normalize", text="Auto Normalize")
 
-        if obj != None and (
-                "sprite" in obj.coa_tools or "coa_bone_shape" in obj) and obj.mode == "EDIT" and obj.type == "MESH" and sprite_object.coa_tools.edit_mesh:
+        if obj != None and obj.mode == "EDIT" and obj.type == "MESH" and sprite_object.coa_tools.edit_mesh:
             row = layout.row(align=True)
             row.label(text="Mesh Tools:")
 
-            if "sprite" in obj.coa_tools:
-                row = layout.row(align=True)
-                operator = row.operator("coa_tools.generate_mesh_from_edges_and_verts", text="Generate Mesh",
-                                        icon="OUTLINER_OB_SURFACE")
+            row = layout.row(align=True)
+            operator = row.operator("coa_tools.generate_mesh_from_edges_and_verts", text="Generate Mesh", icon="OUTLINER_OB_SURFACE")
 
             col = layout.column(align=True)
 
@@ -498,6 +495,7 @@ class COATOOLS_UL_AnimationCollections(bpy.types.UIList):
         if item.name not in ["NO ACTION","Restpose"]:
             col.label(icon="ACTION")
             col.prop(item,"name",emboss=False,text="")
+            col.prop(item,"export",text="")
         elif item.name == "NO ACTION":
             col.label(icon="RESTRICT_SELECT_ON")
             col.label(text=item.name)
@@ -653,10 +651,8 @@ class COATOOLS_PT_Collections(bpy.types.Panel):
         scene = context.scene
         sprite_object = functions.get_sprite_object(obj)
         if sprite_object != None:
-
-
-            row = layout.row()
-            row.prop(sprite_object.coa_tools,"animation_loop",text="Wrap Animation Playback")
+            # row = layout.row()
+            # row.prop(sprite_object.coa_tools,"animation_loop",text="Wrap Animation Playback")
 
             row = layout.row()
             row.prop(scene.coa_tools,"nla_mode",expand=True)
@@ -667,7 +663,15 @@ class COATOOLS_PT_Collections(bpy.types.Panel):
                 row.prop(scene.coa_tools,"frame_end")
 
             row = layout.row()
-            row.template_list("COATOOLS_UL_AnimationCollections","dummy",sprite_object.coa_tools, "anim_collections", sprite_object.coa_tools, "anim_collections_index",rows=2,maxrows=10,type='DEFAULT')
+            box = row.box()
+            box_col = box.column(align=True)
+            box_label_row = box_col.split(factor=0.5, align=True)
+            row1 = box_label_row.row()
+            row2 = box_label_row.row()
+            row2.alignment = "RIGHT"
+            row1.label(text="Animation", icon="ACTION")
+            row2.label(text="Export",icon="EXPORT")
+            box_col.template_list("COATOOLS_UL_AnimationCollections","dummy",sprite_object.coa_tools, "anim_collections", sprite_object.coa_tools, "anim_collections_index",rows=2,maxrows=10,type='DEFAULT')
             col = row.column(align=True)
             col.operator("coa_tools.add_animation_collection",text="",icon="ADD")
             col.operator("coa_tools.remove_animation_collection",text="",icon="REMOVE")

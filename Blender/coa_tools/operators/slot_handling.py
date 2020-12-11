@@ -46,8 +46,8 @@ class COATOOLS_OT_ExtractSlots(bpy.types.Operator):
     def execute(self, context):
         obj = context.active_object
         active_collection = bpy.data.collections[context.scene.coa_tools.active_collection]
-        if obj.type == "MESH" and obj.coa_tools.type == "SLOT":
-            for i,slot in enumerate(obj.coa_tools.slot):
+        if obj.type == "MESH" and len(obj.coa_tools.slot) > 0:
+            for i, slot in enumerate(obj.coa_tools.slot):
                 name = obj.name +"_"+ str(i).zfill(2)
                 ob = obj.copy()
                 functions.link_object(context, ob)
@@ -56,8 +56,8 @@ class COATOOLS_OT_ExtractSlots(bpy.types.Operator):
                 ob.data = slot.mesh
                 for slot in ob.coa_tools.slot:
                     ob.coa_tools.slot.remove(0)
-                ob.matrix_world = obj.matrix_world
                 ob.parent = obj.parent
+                ob.matrix_world = obj.matrix_world
                 ob.select_set(True)
                 context.view_layer.objects.active = ob
         

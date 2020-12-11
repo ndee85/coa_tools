@@ -199,9 +199,12 @@ class COATOOLS_OT_ReprojectSpriteTexture(bpy.types.Operator):
             face.select = True
         for vert in bm.verts:
             vert.select = True
-                        
+
+        object_matrix = obj.matrix_world.copy()
+        obj.rotation_euler = [0,0,0]
+        obj.scale = [1,1,1]
         bpy.ops.uv.project_from_view(camera_bounds=False, correct_aspect=True, scale_to_bounds=True)        
-        
+        obj.matrix_world = object_matrix
         for face in bm.faces:
             face.select = False
         bmesh.update_edit_mesh(obj.data)    
