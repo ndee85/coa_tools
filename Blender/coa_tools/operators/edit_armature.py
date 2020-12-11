@@ -17,7 +17,8 @@ Created by Andreas Esau
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 '''
-    
+
+import os
 import bpy
 import bpy_extras
 import bpy_extras.view3d_utils
@@ -95,7 +96,7 @@ class COATOOLS_TO_DrawBone(bpy.types.WorkSpaceTool):
     bl_description = (
         "Draws Bones"
     )
-    bl_icon = "coa_tools.draw_bone"
+    bl_icon = os.path.join(functions.get_coa_tools_dir(), "icons", "coa_tools.draw_bone")
     bl_widget = None
     # bl_keymap = (
     #     ("coa_tools.draw_polygon", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
