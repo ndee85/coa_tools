@@ -149,7 +149,10 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
         start = bpy_extras.view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
         
         ### Cast ray from view to mouselocation
-        ray = bpy.context.scene.ray_cast(bpy.context.view_layer, start, (start+(end-start)*2000)-start )
+        if functions.b_version_smaller_than((2,91,0)):
+            ray = bpy.context.scene.ray_cast(bpy.context.view_layer, start, (start+(end-start)*2000)-start )
+        else:
+            ray = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, start, (start + (end - start) * 2000) - start)
             
         ### ray_cast return values have changed after blender 2.67.0
         ray = [ray[0],ray[4],ray[5],ray[1],ray[2]]

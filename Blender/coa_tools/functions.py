@@ -348,6 +348,12 @@ def b_version_bigger_than(version):
     else:
         return False
 
+def b_version_smaller_than(version):
+    if bpy.app.version < version:
+        return True
+    else:
+        return False
+
 def check_region(context,event):
     in_view_3d = False
     if context.area != None:
@@ -662,7 +668,10 @@ def get_bounds_and_center(obj):
     
 def ray_cast(start,end,list=[]):
     end = end - start
-    result = bpy.context.scene.ray_cast(bpy.context.view_layer, start, end)
+    if b_version_smaller_than((2, 91, 0)):
+        result = bpy.context.scene.ray_cast(bpy.context.view_layer, start, end)
+    else:
+        result = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, start, end)
 
     result = [result[0],result[4],result[5],result[1],result[2]]
     
