@@ -866,6 +866,21 @@ def property_key_on_frame(obj,prop_names,frame,type="PROPERTY"):
                                             return key_on_frame
     return False
 
+def get_z_order(self, slot):
+    slots = []
+    for i,s in enumerate(self.sprites):
+        if s.type == "MESH":
+            slots.append(s)
+
+    slots.sort(key=lambda x: x.coa_tools.z_value)
+
+    for i, s in enumerate(slots):
+        if i == slot.coa_tools.z_value:
+            return i
+    return -1
+
+
+
 def get_animation_data(self,sprite_object,armature,armature_orig):
     context = bpy.context
     scale = 1/get_addon_prefs(context).sprite_import_export_scale
@@ -891,11 +906,12 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
             slot_keyframe_duration = {}
             ffd_keyframe_duration = {}
             ffd_last_frame_values = {}
+            z_order_defaults = {}
             for slot in self.sprites:
                 if slot.type == "MESH":
                     anim_data["slot"].append({"name":slot.name,"colorFrame":[],"displayFrame":[]})
-                    slot_keyframe_duration[slot.name] = {"color_duration":0,"display_duration":0}
-
+                    slot_keyframe_duration[slot.name] = {"color_duration": 0,"display_duration": 0,"z_order_duration": 0}
+                    z_order_defaults[slot.name] = {"zOrder": get_z_order(self, slot)}
 
                     if slot.coa_tools.type == "MESH":
                         anim_data["ffd"].append({"name":slot.data.name,"slot":slot.name,"frame":[]})
@@ -906,7 +922,6 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                             anim_data["ffd"].append({"name":slot2.mesh.name,"slot":slot.name,"frame":[]})
                             ffd_keyframe_duration[slot2.mesh.name] = {"ffd_duration":0}
                             ffd_last_frame_values[slot2.mesh.name] = None
-
             ### check if slot has animation data. if so, store for later usage                
             SHAPEKEY_ANIMATION = {}
             for i in range(anim.frame_end+1):
@@ -951,6 +966,23 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                     if slot.type == "MESH":
                         slot_keyframe_duration[slot.name]["color_duration"] += 1
                         slot_keyframe_duration[slot.name]["display_duration"] += 1
+                        slot_keyframe_duration[slot.name]["z_order_duration"] += 1
+
+                        if property_key_on_frame(slot,["coa_tools.z_value"], frame):
+                            z_order_data = {}
+                            z_order_data["duration"] = slot_keyframe_duration[slot.name]["z_order_duration"]
+                            z_order_data["zOrder"] = []
+                            for s in self.sprites:
+                                if s.type == "MESH":
+                                    if z_order_defaults[s.name]["zOrder"] != get_z_order(self, s):
+                                        z_order_data["zOrder"].append(z_order_defaults[s.name]["zOrder"])
+                                        z_order_data["zOrder"].append(get_z_order(self, s) - z_order_defaults[s.name]["zOrder"])
+                            if "frame" not in anim_data["zOrder"]:
+                                anim_data["zOrder"]["frame"] = []
+                            anim_data["zOrder"]["frame"].insert(0, z_order_data)
+
+                            slot_keyframe_duration[slot.name]["z_order_duration"] = 0
+
 
                         if property_key_on_frame(slot,["coa_tools.alpha","coa_tools.modulate_color"],frame):
 
