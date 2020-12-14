@@ -900,6 +900,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
             anim_data["slot"] = []
             anim_data["zOrder"] = {}
             anim_data["ffd"] = []
+            animation_data["frame"] = []
 
 
             ### append all slots to list
@@ -922,6 +923,46 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                             anim_data["ffd"].append({"name":slot2.mesh.name,"slot":slot.name,"frame":[]})
                             ffd_keyframe_duration[slot2.mesh.name] = {"ffd_duration":0}
                             ffd_last_frame_values[slot2.mesh.name] = None
+
+            ### gather timeline events
+
+            for i, timeline_event in enumerate(anim.timeline_events):
+
+                if i == 0:
+                    if timeline_event.frame != 0:
+                        anim_data["frame"].append({"duration": timeline_event.frame})
+
+                if i < len(anim.timeline_events)-1:
+                    next_event = anim.timeline_events[i+1]
+
+                    duration = next_event.frame - timeline_event.frame
+                else:
+                    duration = anim.frame_end - timeline_event.frame
+
+                event_data = {}
+                event_data["duration"] = duration
+                for event in timeline_event.event:
+                    if event.type == "SOUND":
+                        event_data["sound"] = event.value
+                    elif event.type == "ANIMATION":
+                        event_data["action"] = event.animation
+                    elif event.type == "EVENT":
+                        if "events" not in event_data:
+                            event_data["events"] = []
+                        custom_event = {}
+                        custom_event["name"] = event.value
+                        if event.target != "":
+                            custom_event["bone"] = event.target
+                        if event.int != "":
+                            custom_event["ints"] = [int(event.int)]
+                        if event.float != "":
+                            custom_event["floats"] = [float(event.float)]
+                        if event.string != "":
+                            custom_event["strings"] = [event.string]
+                        event_data["events"].append(custom_event)
+
+                anim_data["frame"].append(event_data)
+
             ### check if slot has animation data. if so, store for later usage                
             SHAPEKEY_ANIMATION = {}
             for i in range(anim.frame_end+1):
