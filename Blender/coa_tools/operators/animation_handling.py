@@ -573,10 +573,27 @@ class COATOOLS_OT_AddEvent(bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     index: IntProperty()
+    type: EnumProperty(
+        name="Object Type",
+        default="SOUND",
+        items=(
+            ("SOUND", "Sound", "Sound", "SOUND", 0),
+            ("EVENT", "Event", "Event", "PHYSICS", 1),
+            ("ANIMATION", "Animation", "Animation", "ACTION", 2)
+        )
+    )
 
     @classmethod
     def poll(cls, context):
         return True
+
+    def draw(self, context):
+        col = self.layout.column()
+        col.prop(self, "type", text="Event Type")
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
 
     def execute(self, context):
         scene = context.scene
@@ -584,8 +601,23 @@ class COATOOLS_OT_AddEvent(bpy.types.Operator):
         sprite_object = get_sprite_object(obj)
 
         anim = sprite_object.coa_tools.anim_collections[sprite_object.coa_tools.anim_collections_index]
+
         timeline_events = anim.timeline_events[self.index]
+        if context.scene.coa_tools.runtime_format == "DRAGONBONES":
+            for item in timeline_events.event:
+                if item.type in ["SOUND", "ANIMATION"] and item.type == self.type:
+                    message = "Only one " + self.type + " Event allowed."
+                    self.report({"WARNING"}, message)
+                    return {"FINISHED"}
+
         item = timeline_events.event.add()
+
+        if context.scene.coa_tools.runtime_format == "DRAGONBONES":
+            if self.type == "SOUND":
+                item.value = "soundEvent"
+            elif self.type == "EVENT":
+                item.value = "eventName"
+        item.type = self.type
         return {"FINISHED"}
 
 class COATOOLS_OT_RemoveEvent(bpy.types.Operator):

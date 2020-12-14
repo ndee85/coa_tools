@@ -517,28 +517,36 @@ class COATOOLS_UL_EventCollection(bpy.types.UIList):
         box = layout.box()
         col = box.column(align=False)
 
-        row = col.row(align=False)
+        row = col.row(align=True)
         # row.label(text="", icon="TIME")
         if item.collapsed:
             row.prop(item,"collapsed",emboss=False, text="", icon="TRIA_RIGHT")
         else:
             row.prop(item, "collapsed", emboss=False, text="", icon="TRIA_DOWN")
         row.prop(item, "frame", emboss=True, text="Frame")
+        op = row.operator("coa_tools.add_event", icon="ADD", text="", emboss=True)
+        op.index = index
         op = row.operator("coa_tools.remove_timeline_event", text="", icon="PANEL_CLOSE", emboss=False)
         op.index = index
-
-
-        # row = col.row(align=True)
         if not item.collapsed:
-            row = col.row(align=True)
-            # row.alignment = "RIGHT"
-            op = row.operator("coa_tools.add_event", icon="ADD", text="Add new Event", emboss=True)
-            op.index = index
             for i, event in enumerate(item.event):
                 row = col.row(align=True)
                 row.prop(event, "type",text="")
-                row.prop(event, "value",text="")
-                op = row.operator("coa_tools.remove_event", icon="PANEL_CLOSE", text="", emboss=True)
+                if event.type in ["ANIMATION", "SOUND"] or context.scene.coa_tools.runtime_format == "CREATURE":
+                    if event.type in ["SOUND", "EVENT"]:
+                        row.prop(event, "value", text="")
+                    elif event.type == "ANIMATION":
+                        row.prop(event, "animation",text="")
+                    op = row.operator("coa_tools.remove_event", icon="PANEL_CLOSE", text="", emboss=True)
+                else:
+                    row.prop(event, "value", text="")
+                    op = row.operator("coa_tools.remove_event", icon="PANEL_CLOSE", text="", emboss=True)
+                    row = col.row(align=True)
+                    col = row.column()
+                    col.prop(event, "target", text="Target")
+                    col.prop(event, "int", text="Int")
+                    col.prop(event, "float", text="Float")
+                    col.prop(event, "string", text="String")
                 op.index = index
                 op.event_index = i
 

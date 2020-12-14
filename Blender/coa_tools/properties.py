@@ -189,6 +189,15 @@ def get_available_collections(self, context):
         ITEMS.append((child_collection.name,child_collection.name,"","GROUP",i))
     return ITEMS
 
+ANIMATIONS = []
+def get_available_animations(self, context):
+    global ANIMATIONS
+    ANIMATIONS = []
+    sprite_object = functions.get_sprite_object(context.active_object)
+    for i, anim in enumerate(sprite_object.coa_tools.anim_collections):
+        if anim.name not in ["NO ACTION", "Restpose"] and anim.export:
+            ANIMATIONS.append((anim.name, anim.name, anim.name, "ACTION",i))
+    return ANIMATIONS
 
 def set_actions(self, context):
     scene = context.scene
@@ -286,8 +295,13 @@ class SlotData(bpy.types.PropertyGroup):
 
 class Event(bpy.types.PropertyGroup):
     name: StringProperty()
-    type: EnumProperty(name="Object Type",default="SOUND",items=(("SOUND","Sound","Sound","SOUND",0),("EVENT","Event","Event","PHYSICS",1)))
+    type: EnumProperty(name="Object Type",default="SOUND",items=(("SOUND","Sound","Sound","SOUND",0),("EVENT","Event","Event","PHYSICS",1),("ANIMATION","Animation","Animation","ACTION",2)))
     value: StringProperty(description="Define which sound or event key is triggered.")
+    animation: EnumProperty(items=get_available_animations)
+    int: StringProperty()
+    float: StringProperty()
+    string: StringProperty()
+    target: StringProperty()
 
 class TimelineEvent(bpy.types.PropertyGroup):
     def change_event_order(self, context):
