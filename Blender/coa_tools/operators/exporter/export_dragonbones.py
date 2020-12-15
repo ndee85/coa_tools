@@ -283,10 +283,22 @@ def get_uv_data(bm):
                 uvs.append(final_value)
     return uvs
 
+def convert_color_channel(c):
+    if c < 0.0031308:
+        srgb = 0.0 if c < 0.0 else c * 12.92
+    else:
+        srgb = 1.055 * math.pow(c, 1.0 / 2.4) - 0.055
+
+    return srgb
+
 def get_modulate_color(sprite):
     color = sprite.coa_tools.modulate_color
+    r = convert_color_channel(color.r)
+    g = convert_color_channel(color.g)
+    b = convert_color_channel(color.b)
+
     alpha = sprite.coa_tools.alpha
-    color_data = {"rM":int(100*color[0]),"gM":int(100*color[1]),"bM":int(100*color[2]),"aM":int(100*alpha)}
+    color_data = {"rM":int(100*r),"gM":int(100*g),"bM":int(100*b),"aM":int(100*alpha)}
     return color_data
 
 ##### get mesh data like vertices, edges, triangles and uvs   ##### End
