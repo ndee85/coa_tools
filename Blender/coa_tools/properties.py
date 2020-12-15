@@ -445,7 +445,8 @@ class SceneProperties(bpy.types.PropertyGroup):
 
 
     # Exporer Properties
-    project_name: bpy.props.StringProperty(default="New Project", name="Project name")
+    project_name: bpy.props.StringProperty(default="New Project", name="Project Name")
+    armature_name: bpy.props.StringProperty(default="Armature", name="Armature Name")
     runtime_format: bpy.props.EnumProperty(default="CREATURE", description="Exports for choosen runtime.",items=(("CREATURE","Creature","Creature"),("DRAGONBONES","Dragonbones","Dragonbones")))
     export_path: bpy.props.StringProperty(default="", name="Export Path",subtype="DIR_PATH")
     export_image_mode: bpy.props.EnumProperty(default="ATLAS", name="Image Mode",items=(("ATLAS","Atlas","Atlas"),("IMAGES","Images","Images")))

@@ -97,18 +97,18 @@ tex_pathes = {}
 img_names = {} ### exported image names
 tmp_slots_data = {}
 
-def setup_armature_data(root_bone):
+def setup_armature_data(root_bone, armature_name):
     armature_data = OrderedDict({
-                "type":"Armature",
-                "frameRate":24,
-                "name":"Armature",
-                "aabb":{"width":0,"y":0,"height":0,"x":0},
-                "bone":[{"name":root_bone.name}],
-                "slot":[],
-                "skin":[{"name":"","slot":[]}],
-                "ik":[],
-                "animation":[],
-                "defaultActions":[{"gotoAndPlay":""}]
+                "type": "Armature",
+                "frameRate": 24,
+                "name": armature_name,
+                "aabb": {"width":0,"y":0,"height":0,"x":0},
+                "bone": [{"name":root_bone.name}],
+                "slot": [],
+                "skin": [{"name":"","slot":[]}],
+                "ik": [],
+                "animation": [],
+                "defaultActions": [{"gotoAndPlay":""}]
                })
     return armature_data
 
@@ -1361,7 +1361,7 @@ class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
             self.armature_orig.data.pose_position = "REST"
 
         self.json_data = setup_json_project(self.scene.coa_tools.project_name) ### create base template
-        self.json_data["armature"] =  [setup_armature_data(self.sprite_object)] ### create base armature
+        self.json_data["armature"] =  [setup_armature_data(self.sprite_object, self.scene.coa_tools.armature_name)] ### create base armature
         self.json_data["armature"][0]["frameRate"] = self.scene.render.fps
         self.json_data["armature"][0]["slot"] = get_slot_data(self,self.sprites)
         self.json_data["armature"][0]["skin"] = get_skin_data(self,self.sprites,self.armature,self.scale)
@@ -1419,6 +1419,7 @@ class COATOOLS_PT_ExportPanel(bpy.types.Panel):
 
         col = layout.column()
         col.prop(self.scene.coa_tools, "project_name", text="Project Name")
+        col.prop(self.scene.coa_tools, "armature_name", text="Armature Name")
         col.prop(self.scene.coa_tools, "export_path", text="Export Path")
 
         col = layout.column(align=True)
