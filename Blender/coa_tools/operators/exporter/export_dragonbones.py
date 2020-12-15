@@ -979,6 +979,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
             SHAPEKEY_ANIMATION = {}
             for i in range(anim.frame_end+1):
                 frame = anim.frame_end-i
+                slot_data = None
                 for slot in self.sprites:
                     if slot.type == "MESH":
 
@@ -988,18 +989,18 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                         elif slot.coa_tools.type == "SLOT":
                             for slot2 in slot.coa_tools.slot:
                                 slot_data.append(tmp_slots_data[slot2.mesh.name])
+                if slot_data != None:
+                    for item in slot_data:
+                        data = item["data"]
+                        data_name = item["name"]
 
-                for item in slot_data:
-                    data = item["data"]
-                    data_name = item["name"]
-
-                    key_blocks = []
-                    if data.shape_keys != None:
-                        for key in data.shape_keys.key_blocks:
-                            key_blocks.append(key.name)
-                    if property_key_on_frame(data,key_blocks,frame,type="SHAPEKEY"):
-                        SHAPEKEY_ANIMATION[slot.name] = True
-                        break
+                        key_blocks = []
+                        if data.shape_keys != None:
+                            for key in data.shape_keys.key_blocks:
+                                key_blocks.append(key.name)
+                        if property_key_on_frame(data,key_blocks,frame,type="SHAPEKEY"):
+                            SHAPEKEY_ANIMATION[slot.name] = True
+                            break
 
 
             ### append all bones to list
