@@ -5,8 +5,23 @@
 
 Simply copy the coatools_exporter.py into the GIMP plug-ins folder.
 
+For GIMP 2.8:
+
 - on Linux this is /home/YOU/.gimp2.8/plug-ins/
 - on Windows this is C:\Users\YOU\.gimp2.8\plug-ins
+
+For GIMP 2.10:
+
+- on Linux this is `$HOME/.config/GIMP/2.10/plug-ins`
+
+You can type the following on a terminal to install it:
+
+```
+mkdir -p $HOME/.config/GIMP/2.10/plug-ins
+cd $HOME/.config/GIMP/2.10/plug-ins
+wget https://raw.githubusercontent.com/ndee85/coa_tools/master/GIMP/coatools_exporter.py
+chmod u+x coatools_exporter.py
+```
 
 You should find it under File>Export to CoaTools... after restarting GIMP.
 
