@@ -12,6 +12,8 @@ The Cutout Animation Tools (COA Tools) Addon for blender is a 2D rigging and ani
 
 [Take a look at the addon in action.](https://www.youtube.com/playlist?list=PLPI26-KXCXpA-VMlDIWpmdq6M1m4LEjf_)
 
+Sample work made using this addon: [Pepper & Carrot: Episode 6](https://www.youtube.com/watch?v=cTb1_w8hvqY)
+
 ### Photoshop sprite exporter
 Quickly export photoshop layers into separate files with json coordinate informations. This can be used in blender to import sprites very quickly.
 Features:
