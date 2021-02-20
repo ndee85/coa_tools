@@ -109,7 +109,7 @@ class CreateSlotObject(bpy.types.Operator):
     
     def execute(self, context):
         if not self.objects_are_valid(context):
-            self.report({'INFO'},"Please select at least to Sprites to combine into a slot.")
+            self.report({'INFO'},"Please select at least two Sprites to combine into a slot.")
             return{"CANCELLED"}
         
         name = str(context.active_object.name)
