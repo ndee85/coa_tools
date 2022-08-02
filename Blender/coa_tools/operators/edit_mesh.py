@@ -1029,7 +1029,6 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                   
                     
                 ### Set Mouse click
-                
                 if (event.value == 'PRESS' or event.value == 'CLICK') and event.type == click_button and self.mouse_press == False and not self.ctrl and not self.shift:
                     if not self.alt:
                         self.mouse_press = True
@@ -1040,7 +1039,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                         self.draw_verts(context,obj,bm,self.cursor_pos_hist,use_snap=True)
                     return{'RUNNING_MODAL'}
                     
-                if (event.value == 'RELEASE' and event.type == 'MOUSEMOVE'):
+                if (event.value == 'RELEASE' and (event.type == 'MOUSEMOVE' or event.type == 'LEFTMOUSE')):
                     self.mouse_press = False
 
                 
