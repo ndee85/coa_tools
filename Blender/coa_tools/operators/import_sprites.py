@@ -132,7 +132,7 @@ class LoadJsonData(bpy.types.Operator):
                             bpy.ops.coa_tools.coa_import_sprite(path=filepath,parent=sprite_object.name,scale=scale,pos=pos,tilesize=tilesize,offset=offset)
                     
                     
-                    obj = bpy.data.objects[sprite["name"]]
+                    obj = bpy.data.objects[os.path.basename(sprite["resource_path"])]
                     obj.parent = sprite_object
                 
         context.scene.objects.active = sprite_object    
