@@ -68,7 +68,9 @@ It should show up under Files>Export to CoaTools... after your restart GIMP
 
 #### Blender 2.9x
 
-Not supported yet. See #172.
+Not supported yet. See [#172].
+
+[#172]: https://github.com/ndee85/coa_tools/issues/172
 
 #### Blender 2.8x
 
@@ -88,5 +90,6 @@ Not supported yet. See #172.
 
 ### Godot Importer:
 Notice, this importer will only run with current godot 2.1 dev builds. 
-Create an /addons folder in your game projects folder and copy the coa_importer folder into that addons folder. Once the files are loaded go to Project Settings -> Plugins -> Cutout Animation Importer and activate the Plugin.
+1. Create an /addons folder in your game projects folder and copy the coa_importer folder into that addons folder. 
+1. Once the files are loaded go to Project Settings -> Plugins -> Cutout Animation Importer and activate the Plugin.
 
