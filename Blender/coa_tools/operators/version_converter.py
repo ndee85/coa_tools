@@ -60,7 +60,7 @@ class COATOOLS_OT_VersionConverter(bpy.types.Operator):
             if "sprite_object" in obj:
                 obj.coa_tools["sprite_object"] = True
                 del obj["sprite_object"]
-            for prop_name in obj.keys():
+            for prop_name in list(obj.keys()):
                 if "coa_" in prop_name and "coa_tools" not in prop_name:
                     prop_name_new = prop_name.split("coa_")[1]
                     obj.coa_tools[prop_name_new] = obj[prop_name]
