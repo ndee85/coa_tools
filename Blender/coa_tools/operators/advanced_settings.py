@@ -1,13 +1,13 @@
 import bpy
 from bpy.props import StringProperty
 
-class AdvancedSettings(bpy.types.Operator):
+class COATOOLS_OT_AdvancedSettings(bpy.types.Operator):
     bl_idname = "coa_tools.advanced_settings"
     bl_label = "Advanced Settings"
     bl_description = ""
     bl_options = {"REGISTER","UNDO"}
     
-    obj_name = StringProperty()
+    obj_name: StringProperty()
     
     @classmethod
     def poll(cls, context):
@@ -38,8 +38,8 @@ class AdvancedSettings(bpy.types.Operator):
         col = row.column()
 
         sub = col.column(align=True)
-        sub.operator("object.shape_key_add", icon='ZOOMIN', text="").from_mix = False
-        sub.operator("object.shape_key_remove", icon='ZOOMOUT', text="").all = False
+        sub.operator("object.shape_key_add", icon='ADD', text="").from_mix = False
+        sub.operator("object.shape_key_remove", icon='REMOVE', text="").all = False
         sub.menu("MESH_MT_shape_key_specials", icon='DOWNARROW_HLT', text="")
 
         if kb:
@@ -122,7 +122,7 @@ class AdvancedSettings(bpy.types.Operator):
     
     def invoke(self,context,event):
         for obj in bpy.data.objects:
-            obj.select = False
+            obj.select_set(False)
         obj = bpy.data.objects[self.obj_name]
         obj.select = True
         context.scene.objects.active = obj
@@ -132,7 +132,3 @@ class AdvancedSettings(bpy.types.Operator):
     
     def execute(self, context):
         return {"FINISHED"}   
-    
-        
-        
-                

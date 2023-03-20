@@ -34,14 +34,14 @@ from bpy.app.handlers import persistent
 from .. functions import *
 
 ######################################################################################################################################### Create Sprite Object
-class CreateOrtpographicCamera(bpy.types.Operator):
-    bl_idname = "wm.coa_create_ortho_cam"
+class COATOOLS_OT_CreateOrtpographicCamera(bpy.types.Operator):
+    bl_idname = "coa_tools.create_ortho_cam"
     bl_label = "Camera Settings"
     bl_options = {"REGISTER","UNDO"}
     
-    set_resolution = BoolProperty(name="Set Resolution", default = True)
-    resolution = IntVectorProperty(name="Resolution", default=(960,600), size=2)
-    create = BoolProperty(name="Create Camera",default=True)
+    set_resolution: BoolProperty(name="Set Resolution", default = True)
+    resolution: IntVectorProperty(name="Resolution", default=(960,600), size=2)
+    create: BoolProperty(name="Create Camera",default=True)
     
     def draw(self, context):
         layout = self.layout
@@ -63,13 +63,12 @@ class CreateOrtpographicCamera(bpy.types.Operator):
         
         scene = context.scene
         if self.create:
-            context.scene.objects.active = None
-            bpy.ops.object.camera_add(view_align=True, enter_editmode=False, location=(0, -self.resolution[0] * get_addon_prefs(context).sprite_import_export_scale, 0), rotation=(radians(90), 0, 0))
+            context.view_layer.objects.active = None
+            bpy.ops.object.camera_add(enter_editmode=False, align='WORLD', location=(0, -self.resolution[0] * get_addon_prefs(context).sprite_import_export_scale, 0), rotation=(radians(90), 0, 0))
         cam = context.active_object
-        context.scene.objects.active = cam
+        context.view_layer.objects.active = cam
         cam.data.type = "ORTHO"
-        scene.render.pixel_filter_type = "BOX"
-        scene.render.alpha_mode = "TRANSPARENT"
+        scene.render.film_transparent = True
         
         if sprite_object != None:
             cam.parent = sprite_object
@@ -84,18 +83,18 @@ class CreateOrtpographicCamera(bpy.types.Operator):
             scene.render.resolution_percentage = 100
         scene.camera = cam
         if bpy.context.space_data.region_3d.view_perspective != "CAMERA":
-            bpy.ops.view3d.viewnumpad(type="CAMERA")
+            bpy.ops.view3d.view_camera()
         return{"FINISHED"}
     
 
-class AlignCamera(bpy.types.Operator):
+class COATOOLS_OT_AlignCamera(bpy.types.Operator):
     bl_idname = "coa_tools.align_camera"
     bl_label = "Align 2D Camera"
     bl_description = ""
     bl_options = {"REGISTER"}
     
     
-    align = EnumProperty(name="Align Position",description="Align Position",items=(
+    align: EnumProperty(name="Align Position",description="Align Position",items=(
                                 ("BOTTOM_RIGHT","Bottom Right","Bottom Right"),
                                 ("BOTTOM_CENTER","Bottom Center","Bottom Center"),
                                 ("BOTTOM_LEFT","Bottom Left","Bottom Left"),
@@ -123,13 +122,12 @@ class AlignCamera(bpy.types.Operator):
     def draw(self,context):
         layout = self.layout
         row = layout.row()
-        
-        row.prop(self,"align",text="Align Position")
+
+        row.prop(self, "align", text="Align Position")
     
     def execute(self, context):
         cam = context.active_object
         if cam.type == "CAMERA":
-            print(self.align)
             if self.align == "TOP_LEFT":
                 self.x_multiplier = -1
                 self.y_multiplier = 1
@@ -145,7 +143,6 @@ class AlignCamera(bpy.types.Operator):
                 self.y_multiplier = 1
                 self.offset_x = 0.5
                 self.offset_y = 0.5
-                print("baam")
             elif self.align == "CENTER_LEFT":
                 self.x_multiplier = -1
                 self.y_multiplier = -1
@@ -182,4 +179,4 @@ class AlignCamera(bpy.types.Operator):
             cam.location[2] = self.y_multiplier * context.scene.render.resolution_y * get_addon_prefs(context).sprite_import_export_scale * self.offset_y   
             
         return {"FINISHED"}
-            
+

@@ -20,70 +20,69 @@ Created by Andreas Esau
     
 import bpy
 from bpy.props import FloatProperty, IntProperty, BoolProperty, StringProperty, CollectionProperty, FloatVectorProperty, EnumProperty, IntVectorProperty
+
+from .. import outliner
 from .. functions import *
 
-class ChangeZOrdering(bpy.types.Operator):
+class COATOOLS_OT_ChangeZOrdering(bpy.types.Operator):
     bl_idname = "coa_tools.change_z_ordering"
     bl_label = "Change Zordering"
     bl_description = ""
     bl_options = {"REGISTER"}
     
-    active_sprite = StringProperty()
-    all_sprites = StringProperty()
-    index = IntProperty()
-    direction = StringProperty() ## UP - DOWN
-    
+    active_sprite: StringProperty()
+    all_sprites_string: StringProperty()
+    index: IntProperty()
+    direction: StringProperty() ## UP - DOWN
+
+    def __init__(self):
+        self.sprites = eval(self.all_sprites_string)
+
     @classmethod
     def poll(cls, context):
         return True
 
+    def get_sprite_index(self, active_sprite_name):
+        for i, name in enumerate(self.sprites):
+            if name == active_sprite_name:
+                return i
+        return -1
+
     def execute(self, context):
-        scene = context.scene
-        active_sprite = scene.objects[self.active_sprite]
-        
-        all_sprites = []
-        for name in eval(self.all_sprites):
-            all_sprites.append(scene.objects[name])
-            
-        if self.direction == "UP":
-            next_index = max(self.index - 1 , 0)
-        elif self.direction == "DOWN":
-            next_index = min(self.index + 1 , len(all_sprites)-1)
-               
-        next_sprite = all_sprites[next_index]
-        
-        if active_sprite.coa_z_value == next_sprite.coa_z_value:
-            for i,child in enumerate(all_sprites):
-                if child == active_sprite:
-                    child.coa_z_value = child.coa_z_value
-                if self.direction == "DOWN":
-                    if i > self.index:
-                        child.coa_z_value -= 1
-                if self.direction == "UP":
-                    if i < self.index:
-                        child.coa_z_value += 1
-                
-        
-        active_loc_y = active_sprite.location[1]
-        next_loy_y = next_sprite.location[1]
-        active_sprite.location[1] = next_loy_y
-        next_sprite.location[1] = active_loc_y
-        active_z = active_sprite.coa_z_value
-        next_z = next_sprite.coa_z_value
-        active_sprite.coa_z_value = next_z
-        next_sprite.coa_z_value = active_z
-        
+        active_object = bpy.data.objects[context.active_object.name] if context.active_object != None else None
+        active_sprite_name = context.scene.coa_tools.outliner[self.index].display_name
+
+        active_sprite_index = self.get_sprite_index(active_sprite_name)
+        lower_sprite_index = (active_sprite_index-1) % len(self.sprites)
+        higher_sprite_index = (active_sprite_index+1) % len(self.sprites)
+
+        active_sprite = bpy.data.objects[active_sprite_name]
+
+        sorted_sprites = self.sprites[:]
+        if self.direction == "DOWN":
+            sorted_sprites.insert(lower_sprite_index, sorted_sprites.pop(active_sprite_index))
+        elif self.direction == "UP":
+            sorted_sprites.insert(higher_sprite_index, sorted_sprites.pop(active_sprite_index))
+        for i, sprite_name in enumerate(sorted_sprites):
+            sprite = bpy.data.objects[sprite_name]
+            sprite.coa_tools.z_value = len(sorted_sprites) - i - 1
+
+        context.view_layer.objects.active = active_sprite
+        if context.view_layer.objects.active.visible_get():
+            bpy.ops.object.mode_set(mode="EDIT")
+            bpy.ops.object.mode_set(mode="OBJECT")
+        context.view_layer.objects.active = active_object
         return {"FINISHED"}
         
 
-class ViewSprite(bpy.types.Operator):
+class COATOOLS_OT_ViewSprite(bpy.types.Operator):
     bl_idname = "coa_tools.view_sprite"
     bl_label = "View Sprite"
     bl_description = ""
     bl_options = {"REGISTER"}
     
-    type = StringProperty(default="VIEW_SELECTED")
-    name = StringProperty(default="")
+    type: StringProperty(default="VIEW_SELECTED")
+    name: StringProperty(default="")
     
     @classmethod
     def poll(cls, context):
@@ -96,7 +95,7 @@ class ViewSprite(bpy.types.Operator):
         bpy.ops.object.mode_set(mode="OBJECT")
         
         sprite_object = get_sprite_object(context.scene.objects[self.name])
-        children = get_children(context,sprite_object,ob_list=[])
+        children = get_children(context, sprite_object, ob_list=[])
         selected_objects = []
         
         
@@ -106,21 +105,24 @@ class ViewSprite(bpy.types.Operator):
                 
                 
             for obj in context.scene.objects:
-                obj.select = False
+                obj.select_set(False)
                 
-            context.scene.objects.active = context.scene.objects[self.name]
-            context.scene.objects[self.name].select = True
+            context.view_layer.objects.active = context.scene.objects[self.name]
+            context.scene.objects[self.name].select_set(True)
             
             for obj in children:    
-                obj.select = True
+                obj.select_set(True)
             bpy.ops.view3d.view_selected()
             
             for obj in context.selected_objects:
                 if obj not in selected_objects:
-                    obj.select = False
-            context.scene.objects.active = active_object
-            active_object.select = True        
+                    obj.select_set(False)
+            context.view_layer.objects.active = active_object
+            active_object.select_set(True)
+
+            for area in context.screen.areas:
+                if area.type == "VIEW_3D":
+                    area.spaces[0].region_3d.view_distance = area.width * 0.007
             
         bpy.ops.object.mode_set(mode=active_object_mode)
         return {"FINISHED"}
-        

@@ -31,6 +31,7 @@ from mathutils import Vector,Matrix, Quaternion, Euler
 import shutil
 from . texture_atlas_generator import TextureAtlasGenerator
 import zipfile
+import pdb
 
 class Sprite:
     def __init__(self, mesh_object):
@@ -43,8 +44,8 @@ class Sprite:
         # duplicate original object
         sprite = mesh_object.copy()
         sprite.name = mesh_object.name + "_EXPORT"
-        if mesh_object.coa_type == "SLOT":
-            for slot in mesh_object.coa_slot:
+        if mesh_object.coa_tools.type == "SLOT":
+            for slot in mesh_object.coa_tools.slot:
                 slot_data = {"slot": slot.mesh.copy(),
                              "start_pt_index": None,
                              "end_pt_index": None,
@@ -60,30 +61,23 @@ class Sprite:
                          "end_index": None}
             self.slots = [slot_data]
             sprite.data = slot_data["slot"]
-        self.context.scene.objects.link(sprite)
-
-        # cleanup basesprite
-        for slot_data in self.slots:
-            slot = slot_data["slot"]
-            sprite.data = slot
-            if len(sprite.data.vertices) > 4:
-                remove_base_sprite(sprite)
+        bpy.data.collections["COA Export Collection"].objects.link(sprite)
         return sprite
 
-    def delete_sprite(self, scene):
-        scene.objects.unlink(self.object)
+    def delete_sprite(self, collection):
+        collection.objects.unlink(self.object)
         bpy.data.objects(self.object, do_unlink=True)
         del self
 
-class CreatureExport(bpy.types.Operator):
+class COATOOLS_OT_CreatureExport(bpy.types.Operator):
     bl_idname = "coa_tools.export_creature"
     bl_label = "Creature Export"
     bl_description = ""
     bl_options = {"REGISTER"}
 
-    minify_json = BoolProperty(name="Minify Json", default=True, description="Writes Json data in one line to reduce export size.")
-    export_path = StringProperty(name="Export Path", default="", description="Creature Export Path.")
-    project_name = StringProperty(name="Project Name", default="", description="Creature Project Name")
+    minify_json: BoolProperty(name="Minify Json", default=True, description="Writes Json data in one line to reduce export size.")
+    export_path: StringProperty(name="Export Path", default="", description="Creature Export Path.")
+    project_name: StringProperty(name="Project Name", default="", description="Creature Project Name")
 
     def __init__(self):
         self.json_data = self.setup_json_data()
@@ -106,6 +100,7 @@ class CreatureExport(bpy.types.Operator):
         self.bone_scaled = {}
         self.mesh_deformed = {}
         self.remapped_indices = {}
+        self.export_path_abs = bpy.path.abspath(self.export_path)
 
     def setup_json_data(self):
         json_data = OrderedDict()
@@ -129,26 +124,29 @@ class CreatureExport(bpy.types.Operator):
         selected_objects = bpy.context.selected_objects[:]
         active_object = bpy.context.active_object
         for ob in selected_objects:
-            ob.select = False
-        context.scene.objects.active = armature
+            ob.select_set(False)
+        context.view_layer.objects.active = armature
         bpy.ops.object.mode_set(mode="EDIT")
         for bone in armature.data.edit_bones:
             self.init_bone_positions[bone.name] = {"head": Vector(bone.head), "tail": Vector(bone.tail)}
 
         bpy.ops.object.mode_set(mode="OBJECT")
         for ob in context.selected_objects:
-            ob.select = False
+            ob.select_set(False)
         for ob in selected_objects:
-            ob.select = True
-        context.scene.objects.active = active_object
+            ob.select_set(True)
+        context.view_layer.objects.active = active_object
         return armature
 
     def prepare_armature_and_sprites_for_export(self, context, scene):
+        export_collection = bpy.data.collections.new("COA Export Collection")
+        context.scene.collection.children.link(export_collection)
+
         # get sprites that get exported
         sprites = []
         sprite_object_children = get_children(context, self.sprite_object, [])
         for child in sprite_object_children:
-            if child.type == "MESH":
+            if child.type == "MESH" and child.visible_get():
                 sprite = Sprite(child)
                 if len(sprite.object.data.vertices) > 3:
                     sprites.append(sprite)
@@ -198,15 +196,10 @@ class CreatureExport(bpy.types.Operator):
         return None, None
 
     def check_mesh_deformation(self, context):
-        anim_collections = self.sprite_object.coa_anim_collections
+        anim_collections = self.sprite_object.coa_tools.anim_collections
         mesh_deformed = {}
         for anim_index, anim in enumerate(anim_collections):
-            if anim.name not in ["NO ACTION"]:
-                if anim.name == "Restpose":
-                    if "default" in anim_collections:
-                        continue
-                anim_name = anim.name if anim.name != "Restpose" else "default"
-
+            if anim.name not in ["NO ACTION", "Restpose"]:
                 for sprite in self.sprite_data:
                     for i, slot in enumerate(sprite.slots):
                         sprite_name = sprite.name if len(sprite.slots) <= 1 else sprite.name + "_" + str(i).zfill(3)
@@ -217,30 +210,26 @@ class CreatureExport(bpy.types.Operator):
 
                         if sprite.object.data.shape_keys != None and len(sprite.object.data.shape_keys.key_blocks) > 1:
                             mesh_contains_shapekeys = True
-                        if anim_name in self.bone_scaled:
-                            for bone_name in self.bone_scaled[anim_name]:
+                        if anim.name in self.bone_scaled:
+                            for bone_name in self.bone_scaled[anim.name]:
                                 if bone_name in sprite.object.vertex_groups:
                                     mesh_is_scaled = True
                                     break
 
                         if mesh_contains_shapekeys or mesh_is_scaled:
-                            if anim_name not in mesh_deformed:
-                                mesh_deformed[anim_name] = []
-                            mesh_deformed[anim_name].append(sprite_name)
+                            if anim.name not in mesh_deformed:
+                                mesh_deformed[anim.name] = []
+                            mesh_deformed[anim.name].append(sprite_name)
         return mesh_deformed
 
 
 
     def check_and_store_bone_scaling(self, context):
-        anim_collections = self.sprite_object.coa_anim_collections
+        anim_collections = self.sprite_object.coa_tools.anim_collections
         bone_scaled = {}
         for anim_index, anim in enumerate(anim_collections):
-            if anim.name not in ["NO ACTION"]:
-                if anim.name == "Restpose":
-                    if "default" in anim_collections:
-                        continue
-                anim_name = anim.name if anim.name != "Restpose" else "default"
-                self.sprite_object.coa_anim_collections_index = anim_index  ### set animation
+            if anim.name not in ["NO ACTION", "Restpose"]:
+                self.sprite_object.coa_tools.anim_collections_index = anim_index  ### set animation
 
                 for frame in range(anim.frame_end+1):
                     context.scene.frame_set(frame)
@@ -248,9 +237,9 @@ class CreatureExport(bpy.types.Operator):
                         bone_scale = bone.matrix.to_scale()
                         bone_scale = Vector((round(bone_scale.x,1), round(bone_scale.y,1), round(bone_scale.z,1)))
                         if bone_scale != Vector((1, 1, 1)):
-                            if anim_name not in bone_scaled:
-                                bone_scaled[anim_name] = []
-                            bone_scaled[anim_name].append(bone.name)
+                            if anim.name not in bone_scaled:
+                                bone_scaled[anim.name] = []
+                            bone_scaled[anim.name].append(bone.name)
         return bone_scaled
 
 
@@ -299,7 +288,7 @@ class CreatureExport(bpy.types.Operator):
         world_axis_x = Vector((bone_axis_x.dot(Vector((1, 0))), bone_axis_y.dot(Vector((1, 0)))))
         world_axis_y = Vector((bone_axis_x.dot(Vector((0, 1))), bone_axis_y.dot(Vector((0, 1)))))
 
-        bone_system_origin = (mesh_object.matrix_world.inverted() * (armature.matrix_world * bone_head)).xz
+        bone_system_origin = (mesh_object.matrix_world.inverted() @ (armature.matrix_world @ bone_head)).xz
 
         bone_scale = pbone.matrix.to_scale()
         bone_scale_2d = Vector(( self.lerp( 1.0, bone_scale.y, weight), self.lerp(1.0, bone_scale.x, weight) ))
@@ -318,23 +307,24 @@ class CreatureExport(bpy.types.Operator):
         default_vert_positions = []
         verts = sorted(verts, key=lambda vert: vert.index, reverse=False)
         for i,vert in enumerate(verts):
-            default_vert_positions.append(obj.matrix_world * vert.co)
+            default_vert_positions.append(obj.matrix_world @ vert.co)
 
         verts = []
         index = int(obj.active_shape_key_index)
-        shape_key = obj.shape_key_add("tmp_mixed_mesh", from_mix=True)
+        shape_key = obj.shape_key_add(name="tmp_mixed_mesh", from_mix=True)
         for i, vert in enumerate(default_vert_positions):
-            # shapekey_vert = obj.matrix_world * shape_key.data[i].co
+            # shapekey_vert = obj.matrix_world @ shape_key.data[i].co
             shapekey_vert = shape_key.data[i].co
             # scale bones only when vert has bone weights and bone is scaled at any time in animation
-            for bone_name in self.bone_weights[obj_name]:
-                bone = self.armature.pose.bones[bone_name]
-                if anim.name in self.bone_scaled and bone.name in self.bone_scaled[anim.name] and bone.name in obj.vertex_groups:
-                    if str(i) in self.bone_weights[obj_name][bone.name]:
-                        bone_weight = self.bone_weights[obj_name][bone.name][str(i)]
-                        scaled_vert = self.scale_verts_by_bone(bone, self.armature, obj, shapekey_vert, bone_weight)
-                        shapekey_vert = scaled_vert
-            shapekey_vert = (obj.matrix_world * shapekey_vert)
+            if obj_name in self.bone_weights:
+                for bone_name in self.bone_weights[obj_name]:
+                    bone = self.armature.pose.bones[bone_name]
+                    if anim.name in self.bone_scaled and bone.name in self.bone_scaled[anim.name] and bone.name in obj.vertex_groups:
+                        if str(i) in self.bone_weights[obj_name][bone.name]:
+                            bone_weight = self.bone_weights[obj_name][bone.name][str(i)]
+                            scaled_vert = self.scale_verts_by_bone(bone, self.armature, obj, shapekey_vert, bone_weight)
+                            shapekey_vert = scaled_vert
+            shapekey_vert = (obj.matrix_world @ shapekey_vert)
 
             if relative:
                 offset = (shapekey_vert - vert) * self.armature_export_scale
@@ -352,7 +342,7 @@ class CreatureExport(bpy.types.Operator):
 
         # deselect any selected object
         for ob in bpy.context.selected_objects:
-            ob.select = False
+            ob.select_set(False)
 
         for sprite in self.sprite_data:
             meshes = []
@@ -360,12 +350,12 @@ class CreatureExport(bpy.types.Operator):
                 slot = slot_data["slot"]
                 atlas_sprite = sprite.object.copy()
                 atlas_sprite.data = slot.copy()
-                context.scene.objects.link(atlas_sprite)
-                atlas_sprite.select = True
-                context.scene.objects.active = atlas_sprite
+                bpy.data.collections["COA Export Collection"].objects.link(atlas_sprite)
+                atlas_sprite.select_set(True)
+                context.view_layer.objects.active = atlas_sprite
                 name = sprite.name + "_COA_SLOT_" + str(i).zfill(3) if len(sprite.slots) > 1 else sprite.name
                 meshes.append({"obj": atlas_sprite, "name": name})
-                atlas_sprite["coa_sprite_object_name"] = sprite.object.name
+                atlas_sprite["coa_tools.sprite_object_name"] = sprite.object.name
 
             for mesh_data in meshes:
                 atlas_sprite = mesh_data["obj"]
@@ -378,21 +368,21 @@ class CreatureExport(bpy.types.Operator):
                 verts = []
                 for vert in atlas_sprite.data.vertices:
                     verts.append(vert.index)
-                v_group = atlas_sprite.vertex_groups.new(name)
+                v_group = atlas_sprite.vertex_groups.new(name=name)
                 v_group.add(verts, 1.0, "ADD")
                 atlas_objects.append(atlas_sprite)
 
         # select newely created objects
         # atlas_objects = sorted(atlas_objects, key=lambda sprite: sprite.location[1], reverse=True)
         for ob in atlas_objects:
-            ob.select = True
-            context.scene.objects.active = ob
+            ob.select_set(True)
+            context.view_layer.objects.active = ob
             bpy.ops.object.mode_set(mode="EDIT")
             bpy.ops.mesh.reveal()
             bpy.ops.mesh.select_all(action='SELECT')
             bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
             bpy.ops.object.mode_set(mode="OBJECT")
-        context.scene.cursor_location = self.armature.matrix_world.to_translation()
+        context.scene.cursor.location = self.armature.matrix_world.to_translation()
         bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
         return atlas_objects
 
@@ -413,14 +403,14 @@ class CreatureExport(bpy.types.Operator):
                     bottom = min(bottom, val)
         height = top - bottom
         width = left - right
-        return {"width":width, "height":height}
+        return {"width": width, "height": height}
 
     def create_mesh_data(self, context, merged_atlas_obj):
         points = []
         uvs = []
         indices = []
 
-        context.scene.objects.active = merged_atlas_obj
+        context.view_layer.objects.active = merged_atlas_obj
 
         bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.reveal()
@@ -435,8 +425,7 @@ class CreatureExport(bpy.types.Operator):
             for j, slot in enumerate(sprite.slots):
                 sprite.object.data = slot["slot"]
                 v_group_name = sprite.name if len(sprite.slots) <= 1 else sprite.name + "_COA_SLOT_" + str(j).zfill(3)
-                v_group = merged_atlas_obj.vertex_groups[v_group_name]
-
+                v_group = merged_atlas_obj.vertex_groups[v_group_name]# if v_group_name in merged_atlas_obj.vertex_groups else None
                 bm = bmesh.from_edit_mesh(merged_atlas_obj.data)
 
                 sprite, slot = self.get_sprite_data_by_name(v_group.name)
@@ -482,14 +471,13 @@ class CreatureExport(bpy.types.Operator):
                             indices.append(self.remapped_indices[vert.index])
                         slot["end_index"] = current_face_index
 
-
         bpy.ops.object.mode_set(mode="OBJECT")
         return points, uvs, indices
 
     def create_region_data(self, context, merged_atlas_obj):
         regions = OrderedDict()
 
-        context.scene.objects.active = merged_atlas_obj
+        context.view_layer.objects.active = merged_atlas_obj
         bpy.ops.object.mode_set(mode="EDIT")
         bm = bmesh.from_edit_mesh(merged_atlas_obj.data)
 
@@ -532,7 +520,7 @@ class CreatureExport(bpy.types.Operator):
 
     def create_skeleton_data(self):
         self.armature.data.pose_position = "REST"
-        bpy.context.scene.update()
+        bpy.context.view_layer.update()
         skeleton = OrderedDict()
         for i, pbone in enumerate(self.armature.pose.bones):
             pbone["id"] = i+1
@@ -611,15 +599,27 @@ class CreatureExport(bpy.types.Operator):
 
     def create_animation_data(self, context):
         animation = OrderedDict()
-        anim_collections = self.sprite_object.coa_anim_collections
+        anim_collections = self.sprite_object.coa_tools.anim_collections
+
+        # create default animation if no anim collection found
+        if len(anim_collections) == 0:
+            override = context.copy()
+            override["active_object"] = self.sprite_object
+            override["object"] = self.sprite_object
+            bpy.ops.coa_tools.add_animation_collection(override)
+            anim_collection = anim_collections[len(anim_collections)-1]
+            anim_collection.name = "default"
+            anim_collection.frame_end = 1
+
+        # run through all animations
         for anim_index, anim in enumerate(anim_collections):
-            if anim.name not in ["NO ACTION"]:
+            if anim.name not in ["NO ACTION"] and anim.export:
                 if anim.name == "Restpose":
                     anim.frame_end = 0
                     if "default" in anim_collections:
                         continue
                 anim_name = anim.name if anim.name != "Restpose" else "default"
-                self.sprite_object.coa_anim_collections_index = anim_index  ### set animation
+                self.sprite_object.coa_tools.anim_collections_index = anim_index  ### set animation
 
                 animation[anim_name] = OrderedDict()
                 animation[anim_name]["bones"] = OrderedDict()
@@ -645,7 +645,7 @@ class CreatureExport(bpy.types.Operator):
                         start_pt = self.get_bone_head_tail(pbone, local=False)["head"]
                         end_pt = self.get_bone_head_tail(pbone, local=False)["tail"]
 
-                        bake_animation = self.scene.coa_export_bake_anim and frame%self.scene.coa_export_bake_steps == 0
+                        bake_animation = self.scene.coa_tools.export_bake_anim and frame%self.scene.coa_tools.export_bake_steps == 0
                         if str(frame) not in animation[anim_name]["bones"]:
                             animation[anim_name]["bones"][str(frame)] = OrderedDict()
                         animation[anim_name]["bones"][str(frame)][pbone.name] = {"start_pt": [round(start_pt.x, 3), round(start_pt.y, 3)],
@@ -659,17 +659,14 @@ class CreatureExport(bpy.types.Operator):
                         sprite_object = bpy.data.objects[sprite.name]
 
                         for i, slot in enumerate(sprite.slots):
-                            slot_name = sprite.name + "_" + str(i).zfill(3) if sprite_object.coa_type == "SLOT" else sprite.name
-                            if sprite.object.data != slot["slot"]:
-                                context.scene.update()
-                                sprite.object.data = slot["slot"]
+                            slot_name = sprite.name + "_" + str(i).zfill(3) if sprite_object.coa_tools.type == "SLOT" else sprite.name
+                            sprite.object.data = slot["slot"]
                             # collect shapekey animation
                             use_local_displacements = True if anim_name in self.mesh_deformed and slot_name in self.mesh_deformed[anim_name] else False
                             use_post_displacements = False
                             animation[anim_name]["meshes"][str(frame)][slot_name] = {"use_dq": True}
                             animation[anim_name]["meshes"][str(frame)][slot_name]["use_local_displacements"] = use_local_displacements
                             animation[anim_name]["meshes"][str(frame)][slot_name]["use_post_displacements"] = use_post_displacements
-
                             if use_local_displacements:
                                 local_displacements = self.get_shapekey_vert_data(sprite.object, slot_name, sprite.object.data.vertices, anim, relative=True)
                                 animation[anim_name]["meshes"][str(frame)][slot_name]["local_displacements"] = local_displacements
@@ -678,22 +675,27 @@ class CreatureExport(bpy.types.Operator):
                                 animation[anim_name]["meshes"][str(frame)][slot_name]["post_displacements"] = post_displacements
 
                             # collect slot swapping data
-                            enabled = True# if sprite.object.coa_type == "MESH" else True
-                            scale = [1, 1] if i == sprite_object.coa_slot_index else [-1, -1]
+                            enabled = False if sprite_object.coa_tools.type == "MESH" else True
+                            scale = [1, 1] if i == sprite_object.coa_tools.slot_index else [-1, -1]
                             animation[anim_name]["uv_swaps"][str(frame)][slot_name] = {"local_offset": [0, 0], "global_offset": [0, 0], "scale": scale, "enabled": enabled}
 
                             # collect mesh opacity and tint data
-                            animation[anim_name]["mesh_opacities"][str(frame)][slot_name] = {"opacity": round(sprite_object.coa_alpha*100, 1)}
+                            animation[anim_name]["mesh_opacities"][str(frame)][slot_name] = {
+                                "red": round(sprite_object.coa_tools.modulate_color[0]*100, 1),
+                                "green": round(sprite_object.coa_tools.modulate_color[1]*100, 1),
+                                "blue": round(sprite_object.coa_tools.modulate_color[2]*100, 1),
+                                "opacity": round(sprite_object.coa_tools.alpha*100, 1)
+                            }
 
 
                     self.export_progress_current += 1
-                    current_progress = self.export_progress_current/self.export_progress_total
+                    current_progress = self.export_progress_current/max(1,self.export_progress_total)
                     context.window_manager.progress_update(current_progress)
         return animation
 
     def write_json_file(self):
         # get export, project and json path
-        export_path = bpy.path.abspath(self.scene.coa_export_path)
+        export_path = bpy.path.abspath(self.scene.coa_tools.export_path)
         json_path = os.path.join(export_path, self.project_name + "_data.json")
         zip_path = os.path.join(export_path, self.project_name + "_data.zip")
 
@@ -714,7 +716,7 @@ class CreatureExport(bpy.types.Operator):
     def save_texture_atlas(self, context, img_atlas, img_path, atlas_name):
         context.scene.render.image_settings.color_mode = "RGBA"
         compression_rate = int(context.scene.render.image_settings.compression)
-        context.scene.render.image_settings.compression = 100
+        context.scene.render.image_settings.compression = 85
         texture_path = os.path.join(img_path, atlas_name + "_atlas.png")
         img_atlas.save_render(texture_path)
         context.scene.render.image_settings.compression = compression_rate
@@ -722,50 +724,67 @@ class CreatureExport(bpy.types.Operator):
     def setup_progress(self, context):
         self.export_progress_total = 0
         self.export_progress_current = 0
-        for i, anim in enumerate(self.sprite_object.coa_anim_collections):
+        for i, anim in enumerate(self.sprite_object.coa_tools.anim_collections):
             if anim.name not in ["Restpose", "NO ACTION"]:
                 self.export_progress_total += anim.frame_end + 1
         context.window_manager.progress_begin(0, 100)
         context.window_manager.progress_update(0)
 
+    def remove_base_sprites(self):
+        for sprite in self.sprite_object.children:
+            if sprite.type == "MESH":
+                slots = []
+                if len(sprite.coa_tools.slot) == 0:
+                    slots.append(sprite.data)
+                else:
+                    for slot in sprite.coa_tools.slot:
+                        slots.append(slot.mesh)
+                for slot in slots:
+                    sprite.data = slot
+                    if len(slot.vertices) > 4:
+                        remove_base_sprite(sprite)
 
     @classmethod
     def poll(cls, context):
         return True
 
     def execute(self, context):
-        self.reduce_size = context.scene.coa_minify_json
-        bpy.ops.ed.undo_push(message="Start Export")
-        bpy.ops.ed.undo_push(message="Start Export")
+        if not os.path.exists(self.export_path):
+            self.report({"WARNING"}, "Please define a valid export path.")
+            return{"FINISHED"}
+        self.reduce_size = context.scene.coa_tools.minify_json
         self.json_data = self.setup_json_data()
         self.scene = context.scene
 
         scene = context.scene
 
-        self.armature_export_scale = context.scene.coa_armature_scale
+        self.armature_export_scale = context.scene.coa_tools.armature_scale
         self.texture_export_scale = 1 / get_addon_prefs(context).sprite_import_export_scale
-        self.sprite_scale = self.scene.coa_sprite_scale
+        self.sprite_scale = self.scene.coa_tools.sprite_scale
 
         # get sprite object, sprites and armature
         self.sprite_object = get_sprite_object(context.active_object)
         self.armature_orig = get_armature(self.sprite_object)
 
         # collect sprite data and armature for later usage
+        self.remove_base_sprites()
         self.sprite_data, self.armature = self.prepare_armature_and_sprites_for_export(context, scene)
+
         # do precalculations to check various things. makes the exporter overall faster
         self.bone_scaled = self.check_and_store_bone_scaling(context)
         self.bone_weights = self.store_bone_weights()
         self.mesh_deformed = self.check_mesh_deformation(context)
 
-        self.sprite_object.coa_anim_collections_index = 0
+        self.sprite_object.coa_tools.anim_collections_index = 0
         self.setup_progress(context)
         for ob in context.scene.objects:
-            ob.select = False
+            ob.select_set(False)
         atlas_objects = self.create_dupli_atlas_objects(context)
 
         # generate and save atlas data
-        width = self.scene.coa_atlas_resolution_x if self.scene.coa_atlas_mode == "LIMIT_SIZE" else 16384
-        height = self.scene.coa_atlas_resolution_y if self.scene.coa_atlas_mode == "LIMIT_SIZE" else 16384
+        self.armature.data.pose_position = "REST"
+        width = self.scene.coa_tools.atlas_resolution_x if self.scene.coa_tools.atlas_mode == "LIMIT_SIZE" else 16384
+        height = self.scene.coa_tools.atlas_resolution_y if self.scene.coa_tools.atlas_mode == "LIMIT_SIZE" else 16384
         img_atlas, merged_atlas_obj, atlas = TextureAtlasGenerator.generate_uv_layout(
             name="COA_UV_ATLAS",
             objects=atlas_objects,
@@ -773,13 +792,12 @@ class CreatureExport(bpy.types.Operator):
             height=2,
             max_width=width,
             max_height=height,
-            margin=self.scene.coa_atlas_island_margin,
-            texture_bleed=self.scene.coa_export_texture_bleed,
-            square=self.scene.coa_export_square_atlas,
+            margin=self.scene.coa_tools.atlas_island_margin,
+            texture_bleed=self.scene.coa_tools.export_texture_bleed,
+            square=self.scene.coa_tools.export_square_atlas,
             output_scale=self.sprite_scale
         )
-
-        self.save_texture_atlas(context, img_atlas, self.export_path, self.project_name)
+        self.armature.data.pose_position = "POSE"
 
         # collect all relevant json data for export
         points, uvs, indices = self.create_mesh_data(context, merged_atlas_obj)
@@ -792,11 +810,13 @@ class CreatureExport(bpy.types.Operator):
 
 
         self.write_json_file()
+        self.save_texture_atlas(context, img_atlas, self.export_path_abs, self.project_name)
+
+        context.window_manager.progress_end()
 
         # cleanup scene and add an undo history step
+        bpy.ops.ed.undo_push(message="Export Creature")
         bpy.ops.ed.undo()
         bpy.ops.ed.undo_push(message="Export Creature")
         self.report({"INFO"}, "Export successful.")
-
-        context.window_manager.progress_end()
         return {"FINISHED"}

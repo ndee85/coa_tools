@@ -27,13 +27,14 @@ from mathutils import Vector, Matrix, Quaternion, geometry
 import math
 import bmesh
 from bpy.props import FloatProperty, IntProperty, BoolProperty, StringProperty, CollectionProperty, FloatVectorProperty, EnumProperty, IntVectorProperty
-from .. functions import *
+# from .. functions import *
+from .. import functions
 from .. functions_draw import *
 import bgl, blf
 import traceback
 import pdb
 
-class LeaveSculptmode(bpy.types.Operator):
+class COATOOLS_OT_LeaveSculptmode(bpy.types.Operator):
     bl_idname = "coa_tools.leave_sculptmode"
     bl_label = "Leave Sculptmode"
     bl_description = ""
@@ -50,13 +51,13 @@ class LeaveSculptmode(bpy.types.Operator):
         return {"FINISHED"}
         
 
-class ShapekeyAdd(bpy.types.Operator):
+class COATOOLS_OT_ShapekeyAdd(bpy.types.Operator):
     bl_idname = "coa_tools.shapekey_add"
     bl_label = "Add Shapekey"
     bl_description = ""
     bl_options = {"REGISTER"}
 
-    name = StringProperty(name="Name")
+    name: StringProperty(name="Name")
 
     @classmethod
     def poll(cls, context):
@@ -75,14 +76,15 @@ class ShapekeyAdd(bpy.types.Operator):
         shape = obj.shape_key_add(name=self.name,from_mix=False)
         shape_name = shape.name
         
-        for i,shape in enumerate(obj.data.shape_keys.key_blocks):
+        for i, shape in enumerate(obj.data.shape_keys.key_blocks):
             if shape.name == shape_name:
                 obj.active_shape_key_index = i
+                obj.coa_tools["selected_shapekey"] = i
                 break
             
         return {"FINISHED"}
     
-class ShapekeyRemove(bpy.types.Operator):
+class COATOOLS_OT_ShapekeyRemove(bpy.types.Operator):
     bl_idname = "coa_tools.shapekey_remove"
     bl_label = "Remove Shapekey"
     bl_description = ""
@@ -99,28 +101,28 @@ class ShapekeyRemove(bpy.types.Operator):
     def execute(self, context):
         obj = context.active_object
         
-        idx = int(obj.coa_selected_shapekey)
+        idx = int(obj.coa_tools.selected_shapekey)
 
         shape = obj.data.shape_keys.key_blocks[idx]
         obj.shape_key_remove(shape)
             
         return {"FINISHED"}
     
-class ShapekeyRename(bpy.types.Operator):
+class COATOOLS_OT_ShapekeyRename(bpy.types.Operator):
     bl_idname = "coa_tools.shapekey_rename"
     bl_label = "Rename Shapekey"
     bl_description = ""
     bl_options = {"REGISTER"}
 
-    new_name = StringProperty()
+    new_name: StringProperty()
 
     @classmethod
     def poll(cls, context):
         return True
     
-    def invoke(self,context,event):
+    def invoke(self, context, event):
         obj = context.active_object
-        idx = int(obj.coa_selected_shapekey)
+        idx = int(obj.coa_tools.selected_shapekey)
         shape = obj.data.shape_keys.key_blocks[idx]
         
         self.new_name = shape.name
@@ -130,7 +132,7 @@ class ShapekeyRename(bpy.types.Operator):
     
     def execute(self, context):
         obj = context.active_object
-        idx = int(obj.coa_selected_shapekey)
+        idx = int(obj.coa_tools.selected_shapekey)
         shape = obj.data.shape_keys.key_blocks[idx]
         
         shape.name = self.new_name
@@ -138,7 +140,7 @@ class ShapekeyRename(bpy.types.Operator):
             
         
 
-class EditShapekeyMode(bpy.types.Operator):
+class COATOOLS_OT_EditShapekeyMode(bpy.types.Operator):
     bl_idname = "coa_tools.edit_shapekey"
     bl_label = "Edit Shapekey"
     bl_description = ""
@@ -146,26 +148,26 @@ class EditShapekeyMode(bpy.types.Operator):
 
     def get_shapekeys(self,context):
         SHAPEKEYS = []
-        SHAPEKEYS.append(("NEW_KEY","New Shapekey","New Shapekey","NEW",0))
+        SHAPEKEYS.append(("NEW_KEY","New Shapekey","New Shapekey","FILE_NEW",0))
         obj = context.active_object
         if obj.type == "MESH" and obj.data.shape_keys != None:
             i = 0
-            for i,shape in enumerate(obj.data.shape_keys.key_blocks):
+            for i, shape in enumerate(obj.data.shape_keys.key_blocks):
                 if i > 0:
-                    SHAPEKEYS.append((shape.name,shape.name,shape.name,"SHAPEKEY_DATA",i+1))
+                    SHAPEKEYS.append((shape.name, shape.name, shape.name, "SHAPEKEY_DATA", i + 1))
                 
         
         return SHAPEKEYS
 
-    shapekeys = EnumProperty(name="Shapekey",items=get_shapekeys)
-    shapekey_name = StringProperty(name="Name",default="New Shape")
-    mode_init = StringProperty()
+    shapekeys: EnumProperty(name="Shapekey",items=get_shapekeys)
+    shapekey_name: StringProperty(name="Name",default="New Shape")
+    mode_init: StringProperty()
     armature = None
     armature_name = ""
     sprite_object = None
     sprite_object_name = None
     shape = None
-    create_shapekey = BoolProperty(default=False)
+    create_shapekey: BoolProperty(default=False)
     objs = []
     
     last_obj_name = ""
@@ -207,7 +209,7 @@ class EditShapekeyMode(bpy.types.Operator):
                     value = shape.value
             if index != None:
                 obj.active_shape_key_index = index
-    
+
     def execute(self, context):
         self.objs = []
         if context.active_object == None or context.active_object.type != "MESH":
@@ -215,10 +217,10 @@ class EditShapekeyMode(bpy.types.Operator):
             return{"CANCELLED"}
         obj = bpy.data.objects[context.active_object.name] if context.active_object.name in bpy.data.objects else None
         
-        self.sprite_object_name = get_sprite_object(obj).name
+        self.sprite_object_name = functions.get_sprite_object(obj).name
         self.sprite_object = bpy.data.objects[self.sprite_object_name]
 
-        self.armature_name = get_armature(self.sprite_object).name
+        self.armature_name = functions.get_armature(self.sprite_object).name
         self.armature = context.scene.objects[self.armature_name] if self.armature_name in context.scene.objects else None
         
         self.mode_init = obj.mode if obj.mode != "SCULPT" else "OBJECT"
@@ -231,34 +233,30 @@ class EditShapekeyMode(bpy.types.Operator):
             shape = obj.shape_key_add(name=self.shapekey_name, from_mix=False)    
             shape_name = shape.name
             
-        self.sprite_object.coa_edit_shapekey = True
-        self.sprite_object.coa_edit_mode = "SHAPEKEY"
+        self.sprite_object.coa_tools.edit_shapekey = True
+        self.sprite_object.coa_tools.edit_mode = "SHAPEKEY"
         bpy.ops.object.mode_set(mode="SCULPT")
         context.scene.tool_settings.sculpt.use_symmetry_x = False
         context.scene.tool_settings.sculpt.use_symmetry_y = False
         context.scene.tool_settings.sculpt.use_symmetry_z = False
-        
-        for brush in bpy.data.brushes:
-            if brush.sculpt_tool == "GRAB":
-                context.scene.tool_settings.sculpt.brush = brush
-                break
-        
+
+        functions.set_active_tool(self, context, "builtin_brush.Grab")
         self.set_most_driven_shapekey(obj)
         
         ### run modal operator and draw handler
-        args = ()
-        self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
-        context.window_manager.modal_handler_add(self)
+        # args = ()
+        # self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
+        # context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
     
     def exit_edit_mode(self,context,event,obj):
         ### remove draw handler on exiting modal mode
-        bpy.types.SpaceView3D.draw_handler_remove(self.draw_handler, "WINDOW")
+        # bpy.types.SpaceView3D.draw_handler_remove(self.draw_handler, "WINDOW")
 
         for obj in context.selected_objects:
-            obj.select = False
-        self.sprite_object.coa_edit_shapekey = False
-        self.sprite_object.coa_edit_mode = "OBJECT"
+            obj.select_set(False)
+        self.sprite_object.coa_tools.edit_shapekey = False
+        self.sprite_object.coa_tools.edit_mode = "OBJECT"
 
         for obj_name in self.objs:
             obj = bpy.context.scene.objects[obj_name]
@@ -268,7 +266,7 @@ class EditShapekeyMode(bpy.types.Operator):
                 bpy.ops.object.mode_set(mode="OBJECT")
                 obj.show_only_shape_key = False
 
-        context.scene.objects.active = obj
+        context.view_layer.objects.active = obj
         obj.select = True
         if self.armature != None and self.armature.data != None:
             self.armature.data.pose_position = "POSE"
@@ -277,7 +275,8 @@ class EditShapekeyMode(bpy.types.Operator):
     def modal(self, context, event):
         obj = None
         obj_name = context.active_object.name if context.active_object != None else None
-        obj = context.scene.objects[obj_name] if obj_name != None else None
+        # obj = context.scene.objects[obj_name] if obj_name != None else None
+        obj = context.active_object
         self.sprite_object = bpy.data.objects[self.sprite_object_name]
         self.armature = bpy.data.objects[self.armature_name]
 
@@ -297,10 +296,10 @@ class EditShapekeyMode(bpy.types.Operator):
                     bpy.ops.object.mode_set(mode="SCULPT")
                 
                 if obj.type == "MESH" and obj.data.shape_keys != None:
-                    if obj.coa_selected_shapekey != obj.active_shape_key.name:
-                        obj.coa_selected_shapekey = str(obj.active_shape_key_index) #obj.active_shape_key.name
+                    if obj.coa_tools.selected_shapekey != obj.active_shape_key.name:
+                        obj.coa_tools.selected_shapekey = str(obj.active_shape_key_index) #obj.active_shape_key.name
             
-            if self.sprite_object.coa_edit_shapekey == False and obj != None:
+            if self.sprite_object.coa_tools.edit_shapekey == False and obj != None:
                 return self.exit_edit_mode(context,event,obj)
             
         except Exception as e:
@@ -315,4 +314,3 @@ class EditShapekeyMode(bpy.types.Operator):
     
     def draw_callback_px(self):
         draw_edit_mode(self,bpy.context,offset=2)
-           

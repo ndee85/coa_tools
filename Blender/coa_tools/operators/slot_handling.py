@@ -31,9 +31,9 @@ import os
 from bpy_extras.io_utils import ExportHelper, ImportHelper
 import json
 from bpy.app.handlers import persistent
-from .. functions import *
+from .. import functions
 
-class ExtractSlots(bpy.types.Operator):
+class COATOOLS_OT_ExtractSlots(bpy.types.Operator):
     bl_idname = "coa_tools.extract_slots"
     bl_label = "Extract Slots"
     bl_description = ""
@@ -45,27 +45,28 @@ class ExtractSlots(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.active_object
-        if obj.type == "MESH" and obj.coa_type == "SLOT":
-            for i,slot in enumerate(obj.coa_slot):
+        active_collection = bpy.data.collections[context.scene.coa_tools.active_collection]
+        if obj.type == "MESH" and len(obj.coa_tools.slot) > 0:
+            for i, slot in enumerate(obj.coa_tools.slot):
                 name = obj.name +"_"+ str(i).zfill(2)
                 ob = obj.copy()
-                context.scene.objects.link(ob)
+                functions.link_object(context, ob)
                 ob.name = name
-                ob.coa_type = "MESH"
+                ob.coa_tools.type = "MESH"
                 ob.data = slot.mesh
-                for slot in ob.coa_slot:
-                    ob.coa_slot.remove(0)
-                ob.matrix_world = obj.matrix_world
+                for slot in ob.coa_tools.slot:
+                    ob.coa_tools.slot.remove(0)
                 ob.parent = obj.parent
-                ob.select = True
-                context.scene.objects.active = ob
+                ob.matrix_world = obj.matrix_world
+                ob.select_set(True)
+                context.view_layer.objects.active = ob
         
-        context.scene.objects.unlink(obj)        
+        active_collection.objects.unlink(obj)        
         bpy.data.objects.remove(obj)
         return {"FINISHED"}
         
 
-class CreateSlotObject(bpy.types.Operator):
+class COATOOLS_OT_CreateSlotObject(bpy.types.Operator):
     bl_idname = "coa_tools.create_slot_object"
     bl_label = "Create Slot Object"
     bl_description = ""
@@ -75,12 +76,12 @@ class CreateSlotObject(bpy.types.Operator):
     def poll(cls, context):
         return True
     
-    slot_name = StringProperty(name="Slot Name")
-    keep_sprite_position = BoolProperty(name="Keep Sprite Position",description="Keeps the sprite at current position by applying a new origin.",default=True)
+    slot_name: StringProperty(name="Slot Name")
+    keep_sprite_position: BoolProperty(name="Keep Sprite Position",description="Keeps the sprite at current position by applying a new origin.",default=True)
     
     def draw(self,context):
         layout = self.layout
-        if context.active_object.coa_type == "MESH":
+        if context.active_object.coa_tools.type == "MESH":
             layout.prop(self,"slot_name")
         layout.prop(self,"keep_sprite_position")
         
@@ -88,11 +89,6 @@ class CreateSlotObject(bpy.types.Operator):
     def invoke(self,context,event):
         wm = context.window_manager
         return wm.invoke_props_dialog(self)
-        if context.active_object.coa_type != "SLOT":
-            return wm.invoke_props_dialog(self)        
-        else:
-            self.execute(context)
-            return{"FINISHED"}
     
     def objects_are_valid(self,context):
         count = 0
@@ -112,99 +108,100 @@ class CreateSlotObject(bpy.types.Operator):
             self.report({'INFO'},"Please select at least to Sprites to combine into a slot.")
             return{"CANCELLED"}
         
+        active_collection = bpy.data.collections[context.scene.coa_tools.active_collection]
+        
         name = str(context.active_object.name)
         init_obj = bpy.data.objects[context.active_object.name] 
         objs = context.selected_objects[:]
         obj = context.active_object.copy()
-        context.scene.objects.link(obj)
-        context.scene.objects.active = obj
-        if obj.coa_type == "MESH":
+        functions.link_object(context, obj)
+        context.view_layer.objects.active = obj
+        if obj.coa_tools.type == "MESH":
             name = self.slot_name
             obj.name = self.slot_name
         
         
         if self.keep_sprite_position:
-            print("test")
             for ob in objs:
                 slots = []
-                if ob.coa_type == "MESH":
+                if ob.coa_tools.type == "MESH":
                     slots = [ob.data]
-                elif ob.coa_type == "SLOT":
-                    for slot in ob.coa_slot:
+                elif ob.coa_tools.type == "SLOT":
+                    for slot in ob.coa_tools.slot:
                         slots.append(slot.mesh)
                         
                 ob.location[1] = obj.location[1]
                 for i,slot in enumerate(slots):
                     ob_tmp = ob.copy()
-                    context.scene.objects.link(ob_tmp)
+                    functions.link_object(context, ob_tmp)
                     ob_tmp.data = slot
-                    ob_tmp.select = True
+                    ob_tmp.select_set(True)
                     
                     ### deselect all objects, select the current from iteration
                     bpy.ops.object.select_all(action='DESELECT')
-                    ob_tmp.select = True
-                    context.scene.objects.active = ob_tmp
+                    ob_tmp.select_set(True)
+                    context.view_layer.objects.active = ob_tmp
                     
-                    cursor_location = Vector(context.scene.cursor_location)
-                    context.scene.cursor_location = obj.matrix_world.to_translation()
+                    cursor_location = Vector(context.scene.cursor.location)
+                    context.scene.cursor.location = obj.matrix_world.to_translation()
                     bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-                    context.scene.cursor_location = cursor_location
+                    context.scene.cursor.location = cursor_location
                     
-                    context.scene.objects.unlink(ob_tmp)
+                    active_collection.objects.unlink(ob_tmp)
                     bpy.data.objects.remove(ob_tmp)
         
         
-            cursor_location = Vector(context.scene.cursor_location)
-            context.scene.cursor_location = obj.matrix_world.to_translation()
+            cursor_location = Vector(context.scene.cursor.location)
+            context.scene.cursor.location = obj.matrix_world.to_translation()
             bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-            context.scene.cursor_location = cursor_location
+            context.scene.cursor.location = cursor_location
 
-        obj.select = True
-        context.scene.objects.active = obj
+        obj.select_set(True)
+        context.view_layer.objects.active = obj
         
-        obj.coa_type = "SLOT"
+        obj.coa_tools.type = "SLOT"
         for sprite in objs:
             if sprite != obj:
                 if sprite.type == "MESH":
                     item = None
-                    if sprite.coa_type == "MESH":
-                        if sprite.data.name not in obj.coa_slot:
-                            item = obj.coa_slot.add()
+                    if sprite.coa_tools.type == "MESH":
+                        if sprite.data.name not in obj.coa_tools.slot:
+                            item = obj.coa_tools.slot.add()
                         else:
-                            item = obj.coa_slot[sprite.data.name]
+                            item = obj.coa_tools.slot[sprite.data.name]
                         item.mesh = sprite.data    
                         #item.name = sprite.data.name
-                        item.index = len(obj.coa_slot)-1
+                        item.index = len(obj.coa_tools.slot)-1
                         if sprite == init_obj:
-                            obj.coa_slot_index =  item.index
-                            obj.coa_slot_reset_index =  item.index
-                    elif sprite.coa_type == "SLOT" and sprite != init_obj:
-                        for slot in sprite.coa_slot:
-                            item = obj.coa_slot.add()
+                            obj.coa_tools.slot_index =  item.index
+                            obj.coa_tools.slot_reset_index =  item.index
+                    elif sprite.coa_tools.type == "SLOT" and sprite != init_obj:
+                        for slot in sprite.coa_tools.slot:
+                            item = obj.coa_tools.slot.add()
                             #item.name = slot.name
                             item.mesh = slot.mesh
                     if item != None:
                         item["active"] = False
-        obj.coa_slot[0].active = True
+        obj.coa_tools.slot[0].active = True
         ### delete original sprite
         for sprite in objs:
-            context.scene.objects.unlink(sprite)
+            active_collection.objects.unlink(sprite)
             bpy.data.objects.remove(sprite,do_unlink=True)
-        for i,s in enumerate(obj.coa_slot):
+        for i,s in enumerate(obj.coa_tools.slot):
             s.index = i
         obj.name = name    
         return {"FINISHED"}
     
 
-class MoveSlotItem(bpy.types.Operator):
+class COATOOLS_OT_MoveSlotItem(bpy.types.Operator):
     bl_idname = "coa_tools.move_slot_item"
     bl_label = "Move Slot Item"
     bl_description = ""
     bl_options = {"REGISTER"}
     
-    idx = IntProperty()
-    ob_name = StringProperty()
-    mode = StringProperty()
+    idx: IntProperty()
+    ob_name: StringProperty()
+    mode: StringProperty()
         
     @classmethod
     def poll(cls, context):
@@ -215,57 +212,52 @@ class MoveSlotItem(bpy.types.Operator):
         
         if self.mode == "UP":
             new_idx = max(self.idx-1,0)
-            obj.coa_slot.move(self.idx,new_idx)
+            obj.coa_tools.slot.move(self.idx,new_idx)
         elif self.mode == "DOWN":
-            new_idx = min(self.idx+1,len(obj.coa_slot)-1)
-            obj.coa_slot.move(self.idx,new_idx)
+            new_idx = min(self.idx+1,len(obj.coa_tools.slot)-1)
+            obj.coa_tools.slot.move(self.idx,new_idx)
         
-        for i,s in enumerate(obj.coa_slot):
+        for i,s in enumerate(obj.coa_tools.slot):
             s.index = i
         
         return {"FINISHED"}
         
     
-class RemoveFromSlot(bpy.types.Operator):
+class COATOOLS_OT_RemoveFromSlot(bpy.types.Operator):
     bl_idname = "coa_tools.remove_from_slot"
     bl_label = "Remove From Slot"
     bl_description = ""
     bl_options = {"REGISTER"}
     
-    idx = IntProperty()
-    ob_name = StringProperty()
+    idx: IntProperty()
+    ob_name: StringProperty()
     
     @classmethod
     def poll(cls, context):
         return True
 
     def execute(self, context):
-        print(self.idx)
         obj = bpy.data.objects[self.ob_name]
-        slot = obj.coa_slot[self.idx]
+        active_collection = bpy.data.collections[context.scene.coa_tools.active_collection]
+        slot = obj.coa_tools.slot[self.idx]
         active_idx = 0
-        for i,s in enumerate(obj.coa_slot):
+        for i,s in enumerate(obj.coa_tools.slot):
             if s.active:
                 active_idx = i
                 break
-        obj.coa_slot.remove(self.idx)
+        obj.coa_tools.slot.remove(self.idx)
         
         active_idx = max(0,(active_idx - 1))
         
-        for i,s in enumerate(obj.coa_slot):
+        for i,s in enumerate(obj.coa_tools.slot):
             s["index"] = i    
-        if len(obj.coa_slot) > 0:
-            obj.coa_slot[active_idx].active = True
+        if len(obj.coa_tools.slot) > 0:
+            obj.coa_tools.slot[active_idx].active = True
         else:
-            context.scene.objects.unlink(obj)
+            active_collection.objects.unlink(obj)
             bpy.data.objects.remove(obj)    
         
-#        for s in obj.coa_slot:
+#        for s in obj.coa_tools.slot:
 #            if s.index > self.idx:
 #                s["index"] -= 1
-        
-        
-        
-        
         return {"FINISHED"}
-            

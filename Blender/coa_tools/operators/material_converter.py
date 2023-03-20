@@ -2,7 +2,7 @@ import bpy
 from .. functions import *
 
 
-class ConvertMaterials(bpy.types.Operator):
+class COATOOLS_OT_ConvertMaterials(bpy.types.Operator):
     bl_idname = "coa_tools.convert_bi_to_cycles_materials"
     bl_label = "Convert BI to Cycles Materials"
     bl_description = ""
@@ -71,7 +71,6 @@ class ConvertMaterials(bpy.types.Operator):
                 
                 ### setup nodes
                 node_rgb.outputs[0].default_value[:3] = obj.coa_modulate_color
-                print(img)
                 node_texture.image = img
                 node_mix.blend_type = "MULTIPLY"
                 node_mix.inputs[0].default_value = 1.0

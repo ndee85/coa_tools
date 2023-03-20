@@ -1,9 +1,12 @@
 import bpy
 import blf, bgl
+from mathutils import Vector
 from .. functions import get_sprite_object
+import gpu
+from gpu_extras.batch import batch_for_shader
+from .. import constants as CONSTANTS
 
-
-class ShowHelp(bpy.types.Operator):
+class COATOOLS_OT_ShowHelp(bpy.types.Operator):
     bl_idname = "coa_tools.show_help"
     bl_label = "Show Help"
     bl_description = "Show Help"
@@ -34,9 +37,9 @@ class ShowHelp(bpy.types.Operator):
         pos_y = start_pos - (pos_y * self.scale_y)
         size = int(size * self.scale_y)
         
-        bgl.glColor4f(color[0],color[1],color[2],color[3]*self.alpha_current)
+        blf.color(self.font_id, color[0],color[1],color[2],color[3]*self.alpha_current)
         line_height = (size + size*.5) * self.scale_y
-        for i,line in enumerate(lines):
+        for i, line in enumerate(lines):
             
             blf.position(self.font_id, 15+self.region_offset, pos_y-(line_height*i), 0)
             blf.size(self.font_id, size, 72)
@@ -44,10 +47,10 @@ class ShowHelp(bpy.types.Operator):
             
     def invoke(self, context, event):
         wm = context.window_manager
-        wm.coa_show_help = True
+        wm.coa_tools.show_help = True
         args = ()
         self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
-        self._timer = wm.event_timer_add(0.1, context.window)
+        self._timer = wm.event_timer_add(0.1, window=context.window)
         context.window_manager.modal_handler_add(self)
         return {"RUNNING_MODAL"}
     
@@ -56,32 +59,38 @@ class ShowHelp(bpy.types.Operator):
             
     def modal(self, context, event):
         wm = context.window_manager
-        context.area.tag_redraw()
-        for region in context.area.regions:
-            if region.type == "TOOLS":
-                self.region_offset = region.width
-            if region.type == "WINDOW":    
-                self.region_height = region.height
-                self.region_width = region.width
-                #self.scale_y = self.region_height/920
-                self.scale_y = self.region_height/self.display_height
-                self.scale_y = min(1.0,max(.7,self.scale_y))
-                self.scale_x = self.region_width/self.display_width
-                self.scale_x = min(1.0,max(.0,self.scale_x))
-        
-        if context.user_preferences.system.use_region_overlap:
-            pass
-        else:
-            self.region_offset = 0
-        
-        if not wm.coa_show_help:
-            self.alpha = 0.0
-            
-        if not wm.coa_show_help and round(self.alpha_current,1) == 0:#event.type in {"RIGHTMOUSE", "ESC"}:
-            return self.finish()
-        
-        if self.alpha != round(self.alpha_current,1):
-            self.fade()  
+        context = bpy.context
+
+        for area in context.screen.areas:
+            if area.type == "VIEW_3D":
+                # area = context.area
+                area.tag_redraw()
+
+                for region in area.regions:
+                    if region.type == "TOOLS":
+                        self.region_offset = region.width
+                    if region.type == "WINDOW":
+                        self.region_height = region.height
+                        self.region_width = region.width
+                        #self.scale_y = self.region_height/920
+                        self.scale_y = self.region_height/self.display_height
+                        self.scale_y = min(1.0,max(.7,self.scale_y))
+                        self.scale_x = self.region_width/self.display_width
+                        self.scale_x = min(1.0,max(.0,self.scale_x))
+
+                if context.preferences.system.use_region_overlap:
+                    pass
+                else:
+                    self.region_offset = 0
+
+                if not wm.coa_tools.show_help:
+                    self.alpha = 0.0
+
+                if not wm.coa_tools.show_help and round(self.alpha_current,1) == 0:#event.type in {"RIGHTMOUSE", "ESC"}:
+                    return self.finish()
+
+                if self.alpha != round(self.alpha_current,1):
+                    self.fade()
         return {"PASS_THROUGH"}
 
     def finish(self):
@@ -91,6 +100,23 @@ class ShowHelp(bpy.types.Operator):
         bpy.types.SpaceView3D.draw_handler_remove(self.draw_handler, "WINDOW")
         
         return {"FINISHED"}
+
+    def draw_coords(self, coords=[], color=[(1.0, 1.0, 1.0, 1.0)], draw_type="LINE_STRIP", shader_type="2D_UNIFORM_COLOR", line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
+        bgl.glLineWidth(line_width)
+        if point_size != None:
+            bgl.glPointSize(point_size)
+        bgl.glEnable(bgl.GL_BLEND)
+        bgl.glEnable(bgl.GL_LINE_SMOOTH)
+
+        shader = gpu.shader.from_builtin(shader_type)
+        batch = batch_for_shader(shader, draw_type, {"pos": coords, "color":color})
+        shader.bind()
+        # shader.uniform_float("color", color)
+        batch.draw(shader)
+
+        bgl.glDisable(bgl.GL_BLEND)
+        bgl.glDisable(bgl.GL_LINE_SMOOTH)
+        return shader
 
     def draw_callback_px(self):
         self.sprite_object = get_sprite_object(bpy.context.active_object)
@@ -102,29 +128,21 @@ class ShowHelp(bpy.types.Operator):
         headline_color2 = [0.692584, 1.000000, 0.781936, 1.000000]
         headline_color3 = [0.707686, 1.000000, 0.969626, 1.000000]
         
-        ### draw gradient overlay
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glBegin(bgl.GL_QUAD_STRIP)
-        color_black = [0.0,0.0,0.0]
-        x_coord1 = self.region_offset
+        # draw gradient overlay
+        x_coord1 = 0#self.region_offset
         x_coord2 = 525 * self.scale_x
         y_coord1 = self.region_height
-        alpha1 = self.alpha_current * 0.7
-        alpha2 = self.alpha_current * 0.0
-        
-        bgl.glColor4f(color_black[0],color_black[1],color_black[2],alpha1)
-        bgl.glVertex2f(x_coord1,0)
-        
-        bgl.glColor4f(color_black[0],color_black[1],color_black[2],alpha1)
-        bgl.glVertex2f(x_coord1,y_coord1)
-        
-        bgl.glColor4f(color_black[0],color_black[1],color_black[2],alpha2)
-        bgl.glVertex2f(x_coord2,0)
-        
-        bgl.glColor4f(color_black[0],color_black[1],color_black[2],alpha2)
-        bgl.glVertex2f(x_coord2,y_coord1)
-        bgl.glEnd()
-        
+
+        c1 = (0,0,0,self.alpha_current * 0.8)
+        c2 = (0,0,0,self.alpha_current * 0.0)
+
+        v1 = Vector((x_coord1,0))
+        v2 = Vector((x_coord2,0))
+        v3 = Vector((x_coord2,y_coord1))
+        v4 = Vector((x_coord1,y_coord1))
+        verts = [v1,v2,v3,v1,v3,v4]
+        colors = [c1,c2,c2,c1,c2,c1]
+        self.draw_coords(coords=verts, color=colors,draw_type=CONSTANTS.DRAW_TRIS, shader_type=CONSTANTS.SHADER_2D_SMOOTH_COLOR)
         
         
         ### draw hotkeys help
@@ -262,17 +280,17 @@ class ShowHelp(bpy.types.Operator):
                 ["      W   -   Specials Menu",15]]
         
         texts += text_headline
-        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_edit_mode in ["OBJECT"]):
+        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_tools.edit_mode in ["OBJECT"]):
             texts += text_general
-        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_edit_mode in ["OBJECT"]):    
+        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_tools.edit_mode in ["OBJECT"]):
             texts += text_blender
-        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_edit_mode in ["ARMATURE"]):
+        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_tools.edit_mode in ["ARMATURE"]):
             texts += text_armature
-        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_edit_mode in ["SHAPEKEY"]):
+        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_tools.edit_mode in ["SHAPEKEY"]):
             texts += text_shapekey
-        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_edit_mode in ["WEIGHTS"]):
+        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_tools.edit_mode in ["WEIGHTS"]):
             texts += text_weights
-        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_edit_mode in ["MESH"]):
+        if self.sprite_object == None or (self.sprite_object != None and self.sprite_object.coa_tools.edit_mode in ["MESH"]):
             texts += text_mesh
         
         linebreak_size = 0
@@ -300,5 +318,4 @@ class ShowHelp(bpy.types.Operator):
         # restore opengl defaults
         bgl.glLineWidth(1)
         bgl.glDisable(bgl.GL_BLEND)
-        bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
-        
+        # bgl.glColor4f(0.0, 0.0, 0.0, 1.0)

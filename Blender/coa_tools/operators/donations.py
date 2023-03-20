@@ -22,7 +22,7 @@ import webbrowser
 import bpy
 from bpy.props import *
 
-class Donate(bpy.types.Operator):
+class COATOOLS_OT_Donate(bpy.types.Operator):
     bl_idname = "coa_operator.coa_donate"
     bl_label = "Donate"
     bl_description = "You like my Addon and would love to donate a portion. Feel free to so. Just follow this button."
@@ -36,16 +36,16 @@ class Donate(bpy.types.Operator):
         webbrowser.open("https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8TB6CNT9G8LEN")
         return {"FINISHED"}
     
-class Tweet(bpy.types.Operator):
+class COATOOLS_OT_Tweet(bpy.types.Operator):
     bl_idname = "coa_operator.coa_tweet"
     bl_label = "Tweet this addon"
     bl_description = "You like this addon and want to share it with others. Just tweet it."
     bl_options = {"REGISTER"}
     
-    link = StringProperty(default="")
-    text = StringProperty(default="")
-    hashtags = StringProperty(default="")
-    via = StringProperty(default="")
+    link: StringProperty(default="")
+    text: StringProperty(default="")
+    hashtags: StringProperty(default="")
+    via: StringProperty(default="")
     
     @classmethod
     def poll(cls, context):

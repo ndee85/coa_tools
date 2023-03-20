@@ -559,7 +559,7 @@ class ExportToJson(bpy.types.Operator, bpy_extras.io_utils.ExportHelper):
         #return{'FINISHED'}
         ### store frame and animation state
         if len(self.sprite_object.coa_anim_collections) > 0:
-            current_anim_collection = self.sprite_object.coa_anim_collections[self.sprite_object.coa_anim_collections_index]
+            current_anim_collection = self.sprite_object.coa_anim_collections[self.sprite_object.coa_tools.anim_collections_index]
             current_time_frame = context.scene.frame_current
             current_active_object = context.active_object
             current_selected_objects = []

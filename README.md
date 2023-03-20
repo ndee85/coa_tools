@@ -55,6 +55,13 @@ C:\Program Files\Adobe\Adobe Photoshop CC 2015\Presets\Scripts
 
 Don’t forget to restart Photoshop and then go to File -> Scripts -> BlenderExporter.jsx
 
+### Krita Exporter:
+Start Krita, go to Settings -> Manage Resources and click the "Open Resource Folder" in the new window. This will open up the krita resource directory. If no pykrita directory exists, create one.
+Now copy all content from the the Github Krita directory into the pykrita directory. Restart Krita.
+Now go to Settings -> Configure Krita, then to Python Plugin Manager and enable the COA Tools Exporter. Once the plugin is activated, you can enable the docker under Settings -> Dockers -> COA Tools Exporter.
+
+Now just select the desired layers you want to export. Define a project name and path in the docker and export the images.
+
 ### GIMP Exporter:
 
 The coatools_exporter.py should be copied to your GIMP plug-ins folder which is located in:
@@ -65,26 +72,10 @@ It should show up under Files>Export to CoaTools... after your restart GIMP
 
 
 ### Blender Addon:
+Zip the coa_folder.
+Go to File -> User Preferences -> Add-ons and click the “Install from file...” button.
+This will install and enable the Addon for Blender. Don’t forget to save the user preferences, otherwise the addon will not be activated after restart.
 
-#### Blender 2.9x
-
-Not supported yet. See #172.
-
-#### Blender 2.8x
-
-1. Download the `blender28` branch, not the `master`branch.
-1. Zip the `coa_tools` folder that you can find inside the `Blender` folder.
-1. Go to Edit -> Preferences -> Add-ons and click the “📥 Install” button, but don't enable it yet.
-1. Restart Blender (see #159).
-1. Go to Edit -> Preferences -> Add-ons, search for "COA", and enable the addon.
-1. Look for a "COA Tools" tab on the vertical toolbar to the right of the 3D view (press "N" if you don't see that toolbar).
-
-#### Blender < 2.8
-
-1. Download the `master` branch.
-1. Zip the `coa_tools` folder that you can find inside the `Blender` folder.
-1. Go to File -> User Preferences -> Add-ons and click the “Install from file...” button.
-1. Don’t forget to save the user preferences, otherwise the addon will not be activated after restart.
 
 ### Godot Importer:
 Notice, this importer will only run with current godot 2.1 dev builds. 

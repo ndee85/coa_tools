@@ -22,8 +22,8 @@ bl_info = {
     "name": "COA Tools",
     "description": "This Addon provides a Toolset for a 2D Animation Workflow.",
     "author": "Andreas Esau",
-    "version": (1, 0, 4),
-    "blender": (2, 79, 0),
+    "version": (2, 0, 0),
+    "blender": (2, 80, 0),
     "location": "View 3D > Tools > Cutout Animation Tools",
     "warning": "",
     "wiki_url": "https://github.com/ndee85/coa_tools/wiki",
@@ -36,91 +36,219 @@ import os
 import shutil
 import tempfile
 from bpy.app.handlers import persistent
+
 from . import addon_updater_ops
 
 # load and reload submodules
-##################################    
-    
-from . import developer_utils
-modules = developer_utils.setup_addon_modules(__path__, __name__)
+##################################
 
-from . ui import *
+from . import properties as props
+
+from . import ui as user_interface
 from . ui import preview_collections
+from . import outliner
 from . operators.pie_menu import preview_collections_pie
 from . functions import *
+
+from . operators import create_sprite_object
+from . operators import help_display
+
+from . operators import advanced_settings
+from . operators import animation_handling
+from . operators import create_ortho_cam
+from . operators import create_spritesheet_preview
+from . operators import donations
+from . operators import draw_bone_shape
+from . operators import edit_armature
+from . operators import edit_mesh
+from . operators import edit_shapekey
+from . operators import edit_weights
+from . operators import import_sprites
+from . operators import material_converter
+from . operators import pie_menu
+from . operators import slot_handling
+from . operators import toggle_animation_area
+from . operators import view_sprites
+from . operators import version_converter
+from . operators import change_alpha_mode
+
+from . operators.exporter import export_dragonbones
+from . operators.exporter import export_creature
 
 # register
 ################################## 
 
 import traceback
 
+
+
 class COAToolsPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
-    
-    alpha_update_frequency = bpy.props.IntProperty(name="Alpha Update Frequency",default=1,min=1,description="Updates alpha on each x frame.")
-    show_donate_icon = bpy.props.BoolProperty(name="Show Donate Icon",default=False)
-    sprite_import_export_scale = bpy.props.FloatProperty(name="Sprite import/export scale",default=0.01)
-    sprite_thumb_size = bpy.props.IntProperty(name="Sprite thumbnail size",default=48)
-    json_export = bpy.props.BoolProperty(name="Experimental Json export",default=False)
-    dragon_bones_export = bpy.props.BoolProperty(name="Dragonbones Export",default=False)
-    enable_spritesheets = bpy.props.BoolProperty(name="Enable Spritesheets",default=False, description="This feature is deprecated and should not be used for future projects. Use this only for older projects.")
-    
-    auto_check_update = bpy.props.BoolProperty(
+
+    show_donate_icon: bpy.props.BoolProperty(name="Show Donate Icon",default=False)
+    sprite_import_export_scale: bpy.props.FloatProperty(name="Sprite import/export scale",default=0.01)
+
+    auto_check_update: bpy.props.BoolProperty(
     name = "Auto-check for Update",
     description = "If enabled, auto-check for updates using an interval",
     default = True,
     )
-    updater_intrval_months = bpy.props.IntProperty(
+    updater_intrval_months: bpy.props.IntProperty(
     name='Months',
     description = "Number of months between checking for updates",
     default=0,
     min=0
     )
-    updater_intrval_days = bpy.props.IntProperty(
+    updater_intrval_days: bpy.props.IntProperty(
     name='Days',
     description = "Number of days between checking for updates",
     default=1,
     min=0,
     )
-    updater_intrval_hours = bpy.props.IntProperty(
+    updater_intrval_hours: bpy.props.IntProperty(
     name='Hours',
     description = "Number of hours between checking for updates",
     default=0,
     min=0,
     max=23
     )
-    updater_intrval_minutes = bpy.props.IntProperty(
+    updater_intrval_minutes: bpy.props.IntProperty(
     name='Minutes',
     description = "Number of minutes between checking for updates",
     default=0,
     min=0,
     max=59
     )
-    
+
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.alignment = "LEFT"
-        row.prop(self,"enable_spritesheets",text="")
-        row.prop(self,"enable_spritesheets",icon="ERROR",emboss=False)
-        #row.label(text="",icon="ERROR")
-        layout.prop(self, "show_donate_icon")
-        layout.prop(self,"json_export")
-        layout.prop(self,"dragon_bones_export")
-        layout.prop(self,"sprite_import_export_scale")
-        layout.prop(self,"sprite_thumb_size")
-        layout.prop(self,"alpha_update_frequency")
-        
-        
-        addon_updater_ops.update_settings_ui(self,context)
+        # layout.prop(self, "show_donate_icon")
+        layout.prop(self, "sprite_import_export_scale")
+
+        addon_updater_ops.update_settings_ui(self, context)
+
+
+classes = (
+    COAToolsPreferences,
+    # outliner
+    outliner.COAOutliner,
+    outliner.COATOOLS_UL_Outliner,
+
+    #properties
+    props.UVData,
+    props.SlotData,
+    props.Event,
+    props.TimelineEvent,
+    props.AnimationCollections,
+    props.ObjectProperties,
+    props.SceneProperties,
+    props.MeshProperties,
+    props.BoneProperties,
+    props.WindowManagerProperties,
+
+    #operator
+    create_sprite_object.COATOOLS_OT_CreateSpriteObject,
+    create_sprite_object.COATOOLS_OT_DefineSpriteObject,
+    import_sprites.JsonImportData,
+    import_sprites.COATOOLS_OT_CreateMaterialGroup,
+    import_sprites.COATOOLS_OT_ImportSprite,
+    import_sprites.COATOOLS_OT_ImportSprites,
+    import_sprites.COATOOLS_OT_LoadJsonData,
+    import_sprites.COATOOLS_UL_JsonImport,
+    import_sprites.COATOOLS_OT_ReImportSprite,
+
+    user_interface.COATOOLS_OT_ChangeShadingMode,
+    user_interface.COATOOLS_PT_Info,
+    user_interface.COATOOLS_PT_ObjectProperties,
+    user_interface.COATOOLS_PT_Tools,
+    user_interface.COATOOLS_UL_AnimationCollections,
+    user_interface.COATOOLS_UL_EventCollection,
+    user_interface.COATOOLS_OT_SelectChild,
+    user_interface.COATOOLS_PT_Collections,
+
+    view_sprites.COATOOLS_OT_ChangeZOrdering,
+    view_sprites.COATOOLS_OT_ViewSprite,
+
+    advanced_settings.COATOOLS_OT_AdvancedSettings,
+
+    edit_mesh.COATOOLS_OT_ReprojectSpriteTexture,
+    edit_mesh.COATOOLS_OT_GenerateMeshFromEdgesAndVerts,
+    edit_mesh.COATOOLS_OT_DrawContour,
+    edit_mesh.COATOOLS_OT_PickEdgeLength,
+
+    edit_armature.COATOOLS_OT_TooglePoseMode,
+    edit_armature.COATOOLS_OT_BindMeshToBones,
+    edit_armature.COATOOLS_OT_QuickArmature,
+    edit_armature.COATOOLS_OT_SetStretchBone,
+    edit_armature.COATOOLS_OT_RemoveIK,
+    edit_armature.COATOOLS_OT_SetIK,
+    edit_armature.COATOOLS_OT_CreateStretchIK,
+    edit_armature.COATOOLS_OT_RemoveStretchIK,
+
+    edit_shapekey.COATOOLS_OT_LeaveSculptmode,
+    edit_shapekey.COATOOLS_OT_ShapekeyAdd,
+    edit_shapekey.COATOOLS_OT_ShapekeyRemove,
+    edit_shapekey.COATOOLS_OT_ShapekeyRename,
+    edit_shapekey.COATOOLS_OT_EditShapekeyMode,
+
+    edit_weights.COATOOLS_OT_EditWeights,
+
+    slot_handling.COATOOLS_OT_ExtractSlots,
+    slot_handling.COATOOLS_OT_CreateSlotObject,
+    slot_handling.COATOOLS_OT_MoveSlotItem,
+    slot_handling.COATOOLS_OT_RemoveFromSlot,
+
+    animation_handling.COATOOLS_OT_AddKeyframe,
+    animation_handling.COATOOLS_OT_DuplicateAnimationCollection,
+    animation_handling.COATOOLS_OT_AddAnimationCollection,
+    animation_handling.COATOOLS_OT_RemoveAnimationCollection,
+    animation_handling.COATOOLS_OT_CreateNlaTrack,
+    animation_handling.COATOOLS_OT_BatchRender,
+    animation_handling.COATOOLS_OT_AddEvent,
+    animation_handling.COATOOLS_OT_RemoveEvent,
+    animation_handling.COATOOLS_OT_AddTimelineEvent,
+    animation_handling.COATOOLS_OT_RemoveTimelineEvent,
+
+    create_ortho_cam.COATOOLS_OT_CreateOrtpographicCamera,
+    create_ortho_cam.COATOOLS_OT_AlignCamera,
+
+    create_spritesheet_preview.COATOOLS_OT_SelectFrameThumb,
+
+    help_display.COATOOLS_OT_ShowHelp,
+
+    draw_bone_shape.COATOOLS_OT_DrawBoneShape,
+
+    pie_menu.COATOOLS_MT_menu,
+    pie_menu.COATOOLS_MT_keyframe_menu_01,
+    pie_menu.COATOOLS_MT_keyframe_menu_add,
+    pie_menu.COATOOLS_MT_keyframe_menu_remove,
+
+    toggle_animation_area.COATOOLS_OT_ToggleAnimationArea,
+    version_converter.COATOOLS_OT_VersionConverter,
+
+    change_alpha_mode.COATOOLS_OT_ChangeAlphaMode,
+    change_alpha_mode.COATOOLS_OT_ChangeTextureInterpolationMode,
+
+    # exporter
+    export_dragonbones.COATOOLS_OT_DragonBonesExport,
+    export_dragonbones.COATOOLS_PT_ExportPanel,
+    export_creature.COATOOLS_OT_CreatureExport,
+
+)
 
 addon_keymaps = []
 def register_keymaps():
+    kc = bpy.context.window_manager.keyconfigs.addon
+    if kc:
+        km = kc.keymaps.new(name="3D View", space_type="VIEW_3D")
+        kmi = km.keymap_items.new('view3d.move', 'MIDDLEMOUSE', 'PRESS')
+        kmi.active = False
+
     addon = bpy.context.window_manager.keyconfigs.addon
-    km = addon.keymaps.new(name = "3D View", space_type = "VIEW_3D")
+    km = addon.keymaps.new(name="3D View", space_type="VIEW_3D")
     # insert keymap items here
     kmi = km.keymap_items.new("wm.call_menu_pie", type = "F", value = "PRESS")
-    kmi.properties.name = "view3d.coa_pie_menu"
+    kmi.properties.name = "COATOOLS_MT_menu"
     addon_keymaps.append(km)
 
 def unregister_keymaps():
@@ -134,209 +262,97 @@ def unregister_keymaps():
 
 def register():
     addon_updater_ops.register(bl_info)
-    
-    import bpy.utils.previews
-    pcoll2 = bpy.utils.previews.new() 
-    pcoll2.my_previews = ()
-    preview_collections["coa_thumbs"] = pcoll2
-    
-    pcoll = bpy.utils.previews.new()
-    pcoll.my_previews = ()
-    my_icons_dir = os.path.join(os.path.dirname(__file__),"icons")
-    pcoll.load("donate_icon", os.path.join(my_icons_dir,"donate_icon.png"),'IMAGE')
-    pcoll.load("twitter_icon", os.path.join(my_icons_dir,"twitter_icon.png"),'IMAGE')
-    pcoll.load("db_icon", os.path.join(my_icons_dir,"db_icon.png"),'IMAGE')
-    
-    preview_collections["main"] = pcoll
-    preview_collections_pie["main"] = pcoll
-    
-    
-    try: bpy.utils.register_module(__name__)
-    except: traceback.print_exc()
-    
-    
-    print("Registered {} with {} modules".format(bl_info["name"], len(modules)))
-    
-    bpy.types.Object.coa_anim_collections = bpy.props.CollectionProperty(type=AnimationCollections)
-    bpy.types.Object.coa_uv_default_state = bpy.props.CollectionProperty(type=UVData)
-    bpy.types.Object.coa_slot = bpy.props.CollectionProperty(type=SlotData)
-    
-    bpy.types.Scene.coa_ticker = bpy.props.IntProperty()
-    bpy.types.WindowManager.coa_update_uv = bpy.props.BoolProperty(default=False)
-    kc = bpy.context.window_manager.keyconfigs.addon
-    if kc:
-        km = kc.keymaps.new(name="3D View", space_type="VIEW_3D")
-        kmi = km.keymap_items.new('view3d.move', 'MIDDLEMOUSE', 'PRESS')
-        kmi.active = False
-        
-    bpy.app.handlers.frame_change_post.append(update_sprites)    
-    bpy.app.handlers.scene_update_pre.append(scene_update)
-    bpy.app.handlers.load_post.append(coa_startup)
 
+    # register classes
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+    # register tools
+    # bpy.utils.register_tool(edit_mesh.COATOOLS_TO_DrawPolygon, after={"builtin.cursor"}, separator=True, group=True)
+
+    # register props and keymap
+    props.register()
     register_keymaps()
+
+    # create handler
+    bpy.app.handlers.depsgraph_update_pre.append(outliner.create_outliner_items)
+    bpy.app.handlers.frame_change_post.append(update_properties)
+    bpy.app.handlers.depsgraph_update_post.append(update_properties)
+    bpy.app.handlers.load_post.append(check_view_2D_3D)
+    bpy.app.handlers.load_post.append(check_for_deprecated_data)
+    bpy.app.handlers.load_post.append(set_shading)
 
 
 def unregister():
-    for pcoll in preview_collections.values():
-        bpy.utils.previews.remove(pcoll)
-    preview_collections.clear()
-    
-    try: bpy.utils.unregister_module(__name__)
-    except: traceback.print_exc()
-    
-    print("Unregistered {}".format(bl_info["name"]))
-    bpy.context.window_manager.coa_running_modal = False
-    
-    bpy.app.handlers.frame_change_post.remove(update_sprites)
-    bpy.app.handlers.scene_update_pre.remove(scene_update)
-    bpy.app.handlers.load_post.remove(coa_startup)
-    
+    addon_updater_ops.unregister()
+
+    # unregister classes
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
+
+    # unregister tools
+    bpy.utils.unregister_tool(edit_mesh.COATOOLS_TO_DrawPolygon)
+
+    # unregisters props and keymap
+    props.unregister()
     unregister_keymaps()
-      
-ticker2 = 0   
-@persistent
-def update_sprites(dummy):
-    global ticker2
-    ticker2 += 1
-    update_scene = False
 
-    context = bpy.context
-    objects = []
-    
-    if hasattr(context,"visible_objects"):
-        objects = context.visible_objects
-    else:
-        objects = bpy.data.objects
-    
-    alpha_update_frequency = get_addon_prefs(context).alpha_update_frequency    
-    for obj in objects:
-        if "coa_sprite" in obj and obj.animation_data != None and obj.type == "MESH":
-            if obj.coa_sprite_frame != obj.coa_sprite_frame_last:
-                update_uv(bpy.context,obj)
-                obj.coa_sprite_frame_last = obj.coa_sprite_frame
-            if obj.coa_slot_index != obj.coa_slot_index_last:
-                change_slot_mesh_data(context,obj)
-                obj.coa_slot_index_last = obj.coa_slot_index
-            if obj.coa_alpha != obj.coa_alpha_last and ticker2%alpha_update_frequency==0:
-                set_alpha(obj,bpy.context,obj.coa_alpha)
-                obj.coa_alpha_last = obj.coa_alpha
-                update_scene = True
-            if obj.coa_z_value != obj.coa_z_value_last:
-                set_z_value(context,obj,obj.coa_z_value)
-                obj.coa_z_value_last = obj.coa_z_value
-            if obj.coa_modulate_color != obj.coa_modulate_color_last:
-                set_modulate_color(obj,context,obj.coa_modulate_color)
-                obj.coa_modulate_color_last = obj.coa_modulate_color
-        
+    # delete handler
+    bpy.app.handlers.depsgraph_update_pre.remove(outliner.create_outliner_items)
+    bpy.app.handlers.frame_change_post.remove(update_properties)
+    bpy.app.handlers.depsgraph_update_post.remove(update_properties)
+    bpy.app.handlers.load_post.remove(check_view_2D_3D)
+    bpy.app.handlers.load_post.remove(check_for_deprecated_data)
+
+
+@persistent
+def check_for_deprecated_data(dummy):
+    for obj in bpy.data.objects:
         if "sprite_object" in obj:
-            if obj.coa_flip_direction != obj.coa_flip_direction_last:
-                set_direction(obj)    
-                obj.coa_flip_direction_last = obj.coa_flip_direction
-                
-        if update_scene:
-            bpy.context.scene.update()
-            
-    ### animation wrap mode
-    if hasattr(context,"active_object"):
-        sprite_object = get_sprite_object(context.active_object)
-        if sprite_object != None and sprite_object.coa_animation_loop:
-            if context.scene.frame_current > context.scene.frame_end:
-                context.scene.frame_current = context.scene.frame_start
-            if context.scene.frame_current == context.scene.coa_frame_last and context.scene.frame_current == context.scene.frame_start:
-                context.scene.frame_current = context.scene.frame_end
-            context.scene.coa_frame_last = context.scene.frame_current
+            bpy.context.scene.coa_tools.deprecated_data_found = True
 
-
-ticker = 0
 @persistent
-def scene_update(dummy):
-    global ticker
-    ticker += 1
+def check_view_2D_3D(dummy):
     context = bpy.context
-    if hasattr(context,"visible_objects"):
-        objects = context.visible_objects
-    else:
-        objects = bpy.data.objects
-            
-    if  hasattr(context,"window_manager"):
-        wm = bpy.context.window_manager
-        if wm.coa_update_uv:
-            for obj in objects:
-                if "coa_sprite" in obj and obj.animation_data != None and obj.type == "MESH":
-                    if obj.coa_sprite_frame != obj.coa_sprite_frame_last:
-                        update_uv(bpy.context,obj)
-                        obj.coa_sprite_frame_last = obj.coa_sprite_frame
-                    if obj.coa_slot_index != obj.coa_slot_index_last:
-                        change_slot_mesh_data(context,obj)
-                        obj.coa_slot_index_last = obj.coa_slot_index
-                    if obj.coa_z_value != obj.coa_z_value_last:
-                        set_z_value(context,obj,obj.coa_z_value)
-                        obj.coa_z_value_last = obj.coa_z_value    
-                    if ticker%5 == 0:
-                        if obj.coa_alpha != obj.coa_alpha_last:
-                            set_alpha(obj,bpy.context,obj.coa_alpha)
-                            obj.coa_alpha_last = obj.coa_alpha
-                
-    if hasattr(bpy.context,"active_object"):
-        obj = bpy.context.active_object
-        if obj != None and not obj.coa_sprite_updated and "coa_sprite" in obj:
-            for thumb in preview_collections["coa_thumbs"]:
-                preview_collections["coa_thumbs"][thumb].reload()
-            obj.coa_sprite_updated = True
+    if context != None:
+        scene = context.scene
+        if scene != None:
+            if scene.coa_tools.view == "2D":
+                set_middle_mouse_move(True)
+            elif scene.coa_tools.view == "3D":
+                set_middle_mouse_move(False)
 
 
-def hide_base_sprite_version_fix():
-    for obj in bpy.data.objects:
-        if obj.type == "MESH":
-            if "coa_hide_base_sprite" in obj:
-                obj.data.coa_hide_base_sprite = obj.coa_hide_base_sprite
-                del(obj["coa_hide_base_sprite"])
-                
-
-def coa_fix_slots():
-    for obj in bpy.data.objects:
-        if obj.coa_type == "SLOT":
-            for slot in obj.coa_slot:
-                if slot.name in bpy.data.meshes and slot.mesh == None:
-                    slot.mesh = bpy.data.meshes[slot.name]
-
-### start modal operator 
-def scene_update_callback(scene):
-    bpy.app.handlers.scene_update_pre.remove(scene_update_callback)
-    bpy.context.window_manager.coa_running_modal = False
-    bpy.ops.wm.coa_modal()
-    
-    if bpy.context.screen.coa_view == "2D":
-        set_middle_mouse_move(True)
-    elif bpy.context.screen.coa_view == "3D":
-        set_middle_mouse_move(False)
-        
 @persistent
-def coa_startup(dummy):
-    print("startup coa modal operator")
-    bpy.app.handlers.scene_update_pre.append(scene_update_callback)
-    
-    
-    hide_base_sprite_version_fix()
-    
-    ### version fix
-    coa_fix_slots() ### fix coa_slots to point to mesh data
+def set_shading(dummy):
+    bpy.context.scene.eevee.use_taa_reprojection = False
     for obj in bpy.data.objects:
-        if obj.type == "MESH":
-            if "sprite" in obj:
-                obj["coa_sprite"] = True
-                del obj["sprite"]
-            if "coa_sprite" in obj:
-                obj.coa_sprite_updated = False
-                obj.coa_tiles_changed = True
-                set_uv_default_coords(bpy.context,obj)
+        if "sprite_object" in obj.coa_tools:
+            for screen in bpy.data.screens:
+                for area in screen.areas:
+                    if area.type == "VIEW_3D":
+                        area.spaces[0].shading.type = "RENDERED"
+            break
+    bpy.ops.coa_tools.updater_check_now()
 
+@persistent
+def update_properties(scene, depsgraph):
+    context = bpy.context
+    for obj in bpy.data.objects:
+        obj_eval = obj.evaluated_get(depsgraph)
+        
+        if obj_eval.coa_tools.slot_index != obj_eval.coa_tools.slot_index_last:
+            change_slot_mesh_data(bpy.context, obj, obj_eval)
+            obj.coa_tools.slot_index_last = obj_eval.coa_tools.slot_index
 
-import atexit
+        if obj_eval.coa_tools.alpha != obj_eval.coa_tools.alpha_last:
+            set_alpha(obj, context, obj_eval.coa_tools.alpha)
+            obj.coa_tools.alpha_last = obj_eval.coa_tools.alpha
 
-### delete thumbs on blender exit
-def delete_thumb_previews():
-    thumb_dir_path = os.path.join(tempfile.gettempdir(),"coa_thumbs")
-    if os.path.exists(thumb_dir_path):
-        shutil.rmtree(thumb_dir_path, ignore_errors=True)        
-atexit.register(delete_thumb_previews)
+        if obj_eval.coa_tools.modulate_color != obj_eval.coa_tools.modulate_color_last:
+            set_modulate_color(obj, context, obj_eval.coa_tools.modulate_color)
+            obj.coa_tools.modulate_color_last = obj_eval.coa_tools.modulate_color
+
+        if obj_eval.coa_tools.z_value != obj_eval.coa_tools.z_value_last:
+            set_z_value(context, obj, obj_eval.coa_tools.z_value)
+            obj.coa_tools.z_value_last = obj_eval.coa_tools.z_value

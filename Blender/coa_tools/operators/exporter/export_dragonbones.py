@@ -29,6 +29,7 @@ import math
 from mathutils import Vector,Matrix, Quaternion, Euler
 import shutil
 from . texture_atlas_generator import TextureAtlasGenerator
+from ... import constants
 
 json_data = OrderedDict({
             "info":"Generated with COA Tools",
@@ -96,18 +97,18 @@ tex_pathes = {}
 img_names = {} ### exported image names
 tmp_slots_data = {}
 
-def setup_armature_data(root_bone):
+def setup_armature_data(root_bone, armature_name):
     armature_data = OrderedDict({
-                "type":"Armature",
-                "frameRate":24,
-                "name":"Armature",
-                "aabb":{"width":0,"y":0,"height":0,"x":0},
-                "bone":[{"name":root_bone.name}],
-                "slot":[],
-                "skin":[{"name":"","slot":[]}],
-                "ik":[],
-                "animation":[],
-                "defaultActions":[{"gotoAndPlay":""}]
+                "type": "Armature",
+                "frameRate": 24,
+                "name": armature_name,
+                "aabb": {"width":0,"y":0,"height":0,"x":0},
+                "bone": [{"name":root_bone.name}],
+                "slot": [],
+                "skin": [{"name":"","slot":[]}],
+                "ik": [],
+                "animation": [],
+                "defaultActions": [{"gotoAndPlay":""}]
                })
     return armature_data
 
@@ -125,10 +126,13 @@ def setup_json_project(project_name):
 def get_sprite_image_data(sprite_data):
     #mat = sprite.active_material
     mat = sprite_data.materials[0]
-    tex = [slot.texture for slot in mat.texture_slots if slot != None and slot.texture.type == "IMAGE"][0]
-    img = tex.image if tex.image != None else None
+    for node in mat.node_tree.nodes:
+        if node.type == "GROUP" and node.node_tree.name == constants.COA_NODE_GROUP_NAME:
+            links = node.inputs[0].links
+            tex_node = links[0].from_node
+            img = tex_node.image if len(links) > 0 and tex_node.type == "TEX_IMAGE" else None
 
-    return mat, tex, img
+    return mat, img
 
 def copy_textures(self,sprites,texture_dir_path):
     global img_names
@@ -136,15 +140,17 @@ def copy_textures(self,sprites,texture_dir_path):
     for sprite in sprites:
         if sprite.type == "MESH":
             imgs = []
-            if sprite.coa_type == "MESH":
+            if sprite.coa_tools.type == "MESH":
                 if len(sprite.data.materials) > 0:
-                    mat, tex, img = get_sprite_image_data(sprite.data)
-                    imgs.append({"img":img,"key":sprite.data.name})
-            elif sprite.coa_type == "SLOT":
-                for slot in sprite.coa_slot:
+                    mat, img = get_sprite_image_data(sprite.data)
+                    if img != None:
+                        imgs.append({"img":img,"key":sprite.data.name})
+            elif sprite.coa_tools.type == "SLOT":
+                for slot in sprite.coa_tools.slot:
                     if len(slot.mesh.materials) > 0:
-                        mat, tex, img = get_sprite_image_data(slot.mesh)
-                        imgs.append({"img":img,"key":slot.mesh.name})
+                        mat, img = get_sprite_image_data(slot.mesh)
+                        if img != None:
+                            imgs.append({"img":img,"key":slot.mesh.name})
 
             for data in imgs:
                 img = data["img"]
@@ -156,7 +162,7 @@ def copy_textures(self,sprites,texture_dir_path):
 
                 img_names[key] = img_name[:img_name.rfind(".")]
 
-                if self.scene.coa_export_image_mode == "IMAGES":
+                if self.scene.coa_tools.export_image_mode == "IMAGES":
                     if os.path.isfile(src_path):
                         shutil.copyfile(src_path,dst_path)
                     else:
@@ -165,14 +171,14 @@ def copy_textures(self,sprites,texture_dir_path):
 
 
 def remove_base_sprite(obj):
-    bpy.context.scene.objects.active = obj
-    obj.hide = False
+    bpy.context.view_layer.objects.active = obj
+    obj.hide_set(False)
     bpy.ops.object.mode_set(mode="EDIT")
     bm = bmesh.from_edit_mesh(obj.data)
     bm.verts.ensure_lookup_table()
     verts = []
 
-    if "coa_base_sprite" in obj.vertex_groups and obj.data.coa_hide_base_sprite:
+    if "coa_base_sprite" in obj.vertex_groups and obj.data.coa_tools.hide_base_sprite:
         v_group_idx = obj.vertex_groups["coa_base_sprite"].index
         for i,vert in enumerate(obj.data.vertices):
             for g in vert.groups:
@@ -185,7 +191,7 @@ def remove_base_sprite(obj):
     bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
 
 
-    bmesh.ops.delete(bm,geom=verts,context=1)
+    bmesh.ops.delete(bm,geom=verts,context='VERTS')
     bm = bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -197,9 +203,9 @@ def get_mixed_vertex_data(obj):
     shapes = obj.data.shape_keys
     verts = []
     index = int(obj.active_shape_key_index)
-    shape_key = obj.shape_key_add("tmp_mixed_mesh",from_mix=True)
+    shape_key = obj.shape_key_add(name="tmp_mixed_mesh",from_mix=True)
     for vert in shape_key.data:
-        coord = obj.matrix_world * vert.co
+        coord = obj.matrix_world @ vert.co
         verts.append([vert.co[0],vert.co[1],vert.co[2]])
     obj.shape_key_remove(shape_key)
     obj.active_shape_key_index = index
@@ -277,10 +283,22 @@ def get_uv_data(bm):
                 uvs.append(final_value)
     return uvs
 
+def convert_color_channel(c):
+    if c < 0.0031308:
+        srgb = 0.0 if c < 0.0 else c * 12.92
+    else:
+        srgb = 1.055 * math.pow(c, 1.0 / 2.4) - 0.055
+
+    return srgb
+
 def get_modulate_color(sprite):
-    color = sprite.coa_modulate_color
-    alpha = sprite.coa_alpha
-    color_data = {"rM":int(100*color[0]),"gM":int(100*color[1]),"bM":int(100*color[2]),"aM":int(100*alpha)}
+    color = sprite.coa_tools.modulate_color
+    r = convert_color_channel(color.r)
+    g = convert_color_channel(color.g)
+    b = convert_color_channel(color.b)
+
+    alpha = sprite.coa_tools.alpha
+    color_data = {"rM":int(100*r),"gM":int(100*g),"bM":int(100*b),"aM":int(100*alpha)}
     return color_data
 
 ##### get mesh data like vertices, edges, triangles and uvs   ##### End
@@ -320,8 +338,8 @@ def get_slot_data(self,sprites):
 
             slot_data.append(slot)
 
-            if len(sprite.coa_slot) > 0:
-                slot["displayIndex"] = sprite.coa_slot_index
+            if len(sprite.coa_tools.slot) > 0:
+                slot["displayIndex"] = sprite.coa_tools.slot_index
 
             color = get_modulate_color(sprite)
             if color["rM"] != 100 or color["gM"] != 100 or color["bM"] != 100 or color["aM"] != 100:
@@ -355,7 +373,7 @@ def create_cleaned_armature_copy(self,armature,sprites):
         armature_copy.data = armature_data
         armature_copy.name = "COA_EXPORT_ARMATURE"
 
-        scene.objects.link(armature_copy)
+        context.collection.objects.link(armature_copy)
 
         delete_non_deform_bones(self,armature_copy,sprites)
         create_copy_transform_constraints(self,armature,armature_copy)
@@ -385,7 +403,7 @@ def delete_non_deform_bones(self,armature,sprites):
     global bone_uses_constraints
     bone_uses_constraints = {}
     context = bpy.context
-    context.scene.objects.active = armature
+    context.view_layer.objects.active = armature
 
     bpy.ops.object.mode_set(mode="EDIT")
 
@@ -423,10 +441,10 @@ def bone_is_deform_bone(self,bone,sprites):
             init_mesh = sprite.data
             meshes = []
             ### get a list of all meshes in sprite -> slot objects containt multiple meshes
-            if sprite.coa_type == "MESH":
+            if sprite.coa_tools.type == "MESH":
                 meshes.append(sprite.data)
-            elif sprite.coa_type == "SLOT":
-                for slot in sprite.coa_slot:
+            elif sprite.coa_tools.type == "SLOT":
+                for slot in sprite.coa_tools.slot:
                     meshes.append(slot.mesh)
 
             ### check all meshes if bone is deforming that mesh
@@ -457,10 +475,10 @@ def bone_is_driver(bone,sprites):
     for sprite in sprites:
         if sprite.type == "MESH":
             meshes = []
-            if sprite.coa_type == "MESH":
+            if sprite.coa_tools.type == "MESH":
                 meshes.append(sprite.data)
-            elif sprite.coa_type == "SLOT":
-                for slot in sprite.coa_slot:
+            elif sprite.coa_tools.type == "SLOT":
+                for slot in sprite.coa_tools.slot:
                     meshes.append(slot.mesh)
 
             all_bone_targets = []
@@ -501,8 +519,8 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
         sprite_data = slot_data.copy()
     sprite = sprite.copy()
     sprite.data = sprite_data
-    self.scene.objects.link(sprite)
-    self.scene.objects.active = sprite
+    context.collection.objects.link(sprite)
+    context.view_layer.objects.active = sprite
 
     ### normalize weights
     normalize_weights(sprite, armature, 0.0)
@@ -520,9 +538,10 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
     tmp_slots_data[sprite_data_name] = {"data":sprite_data,"object":sprite,"name":sprite_data_name}
 
     ### get sprite material, texture and img data
-    mat, tex, img = get_sprite_image_data(sprite_data)
-    tex_path = os.path.join(self.scene.coa_project_name+"_texture" , img_names[sprite_data_name])
-    tex_pathes[sprite_name] = tex_path
+    mat, img = get_sprite_image_data(sprite_data)
+    if sprite_data_name in img_names:
+        tex_path = os.path.join(self.scene.coa_tools.project_name+"_texture", img_names[sprite_data_name])
+        tex_pathes[sprite_name] = tex_path
     ### delete basesprite mesh in sprite duplicate
     remove_base_sprite(sprite)
 
@@ -537,13 +556,13 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
     display_data["name"] = sprite_data_name#sprite_name
     if len(sprite.data.vertices) != 4:
         display_data["type"] = "mesh"
-        if self.scene.coa_export_image_mode == "IMAGES":
+        if self.scene.coa_tools.export_image_mode == "IMAGES":
             display_data["path"] = img_names[sprite_data_name]
 
-        if self.scene.coa_export_image_mode == "IMAGES":
+        if self.scene.coa_tools.export_image_mode == "IMAGES":
             display_data["width"] = int(img.size[0])
             display_data["height"] = int(img.size[1])
-        elif self.scene.coa_export_image_mode == "ATLAS":
+        elif self.scene.coa_tools.export_image_mode == "ATLAS":
             display_data["width"] = atlas_data[sprite_data_name]["width"]
             display_data["height"] = atlas_data[sprite_data_name]["height"]
 
@@ -559,7 +578,7 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
 
     if armature != None:
         armature.data.pose_position = "REST"
-        bpy.context.scene.update()
+        bpy.context.view_layer.update()
 
         if len(sprite.data.vertices) != 4:
             ### write mesh bone data
@@ -578,7 +597,7 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
                 display_data["bonePose"].append(round(mat[1][3] * scale ,3))#pos x
                 display_data["bonePose"].append(round(-mat[0][3] *scale ,3))#pos y
             armature.data.pose_position = "POSE"
-            bpy.context.scene.update()
+            bpy.context.view_layer.update()
 
             w = round(sprite.matrix_local[0][0], 3)
             x = round(sprite.matrix_local[0][2], 3)
@@ -594,7 +613,7 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
             if bone != None:
                 bone_pos = get_bone_matrix(self.armature, bone, relative=False).to_translation()
                 p_bone = self.armature.pose.bones[bone.name]
-                sprite_pos_final = (bone.matrix_local.inverted() * sprite_center_pos) * scale
+                sprite_pos_final = (bone.matrix_local.inverted() @ sprite_center_pos) * scale
                 angle = get_bone_angle(armature, bone, relative=False)
             else:
                 sprite_pos_final = sprite_center_pos * scale
@@ -635,11 +654,11 @@ def get_skin_data(self,sprites,armature,scale):
         slot_data["display"] = []
 
         if sprite.type == "MESH":
-            if sprite.coa_type == "MESH":
+            if sprite.coa_tools.type == "MESH":
                 data2 = get_skin_slot(self,sprite,armature,scale)
                 slot_data["display"].append(data2)
-            elif sprite.coa_type == "SLOT":
-                for slot in sprite.coa_slot:
+            elif sprite.coa_tools.type == "SLOT":
+                for slot in sprite.coa_tools.slot:
                     data2 = get_skin_slot(self,sprite,armature,scale,slot_data=slot.mesh)
                     slot_data["display"].append(data2)
 
@@ -663,17 +682,17 @@ def get_bone_matrix(armature,bone,relative=True):
     m.row[3] = [0,0,0,1]
 
     if bone.parent == None:
-        mat_bone_space = m * pose_bone.matrix
+        mat_bone_space = m @ pose_bone.matrix
     else:
         if relative:
             #if bone.use_inherit_rotation and bone.use_inherit_scale:
-            # mat_bone_space = pose_bone.parent.matrix.inverted() * pose_bone.matrix
+            # mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
             mat_bone_space = pose_bone.matrix
             for parent in pose_bone.parent_recursive:
-                pose_bone_matrix = parent.matrix.inverted() * mat_bone_space
-                mat_bone_space = pose_bone.parent.matrix.inverted() * pose_bone.matrix
+                pose_bone_matrix = parent.matrix.inverted() @ mat_bone_space
+                mat_bone_space = pose_bone.parent.matrix.inverted() @ pose_bone.matrix
         else:
-            mat_bone_space = m * pose_bone.matrix
+            mat_bone_space = m @ pose_bone.matrix
     #### remap matrix
     loc, rot, scale = mat_bone_space.decompose()
 
@@ -688,7 +707,7 @@ def get_bone_matrix(armature,bone,relative=True):
     scale_mat[0][0] = scale[1]
     scale_mat[1][1] = scale[0]
     scale_mat[2][2] = scale[2]
-    mat_bone_space = loc_mat * rot_mat * scale_mat
+    mat_bone_space = loc_mat @ rot_mat @ scale_mat
     return mat_bone_space
 
 def get_mesh_center(sprite, scale):
@@ -696,7 +715,7 @@ def get_mesh_center(sprite, scale):
     for i,vert in enumerate(sprite.data.vertices):
         average_vert += vert.co
     average_vert /= len(sprite.data.vertices)
-    pos = (sprite.matrix_world * average_vert) * scale
+    pos = (sprite.matrix_world @ average_vert) * scale
     pos_2d = Vector((pos[0], pos[2]))
     return pos
 
@@ -859,16 +878,31 @@ def property_key_on_frame(obj,prop_names,frame,type="PROPERTY"):
                                             return key_on_frame
     return False
 
+def get_z_order(self, slot):
+    slots = []
+    for i,s in enumerate(self.sprites):
+        if s.type == "MESH":
+            slots.append(s)
+
+    slots.sort(key=lambda x: x.coa_tools.z_value)
+
+    for i, s in enumerate(slots):
+        if i == slot.coa_tools.z_value:
+            return i
+    return -1
+
+
+
 def get_animation_data(self,sprite_object,armature,armature_orig):
     context = bpy.context
     scale = 1/get_addon_prefs(context).sprite_import_export_scale
-    anims = sprite_object.coa_anim_collections
+    anims = sprite_object.coa_tools.anim_collections
 
     animations = []
 
     for anim_index,anim in enumerate(anims):
-        if anim.name not in ["NO ACTION","Restpose"]:
-            sprite_object.coa_anim_collections_index = anim_index ### set animation
+        if anim.name not in ["NO ACTION","Restpose"] and anim.export:
+            sprite_object.coa_tools.anim_collections_index = anim_index ### set animation
 
             anim_data = animation_data.copy()
             anim_data["duration"] = anim.frame_end
@@ -878,53 +912,95 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
             anim_data["slot"] = []
             anim_data["zOrder"] = {}
             anim_data["ffd"] = []
+            animation_data["frame"] = []
 
 
             ### append all slots to list
             slot_keyframe_duration = {}
             ffd_keyframe_duration = {}
             ffd_last_frame_values = {}
+            z_order_defaults = {}
             for slot in self.sprites:
                 if slot.type == "MESH":
                     anim_data["slot"].append({"name":slot.name,"colorFrame":[],"displayFrame":[]})
-                    slot_keyframe_duration[slot.name] = {"color_duration":0,"display_duration":0}
+                    slot_keyframe_duration[slot.name] = {"color_duration": 0,"display_duration": 0,"z_order_duration": 0}
+                    z_order_defaults[slot.name] = {"zOrder": get_z_order(self, slot)}
 
-
-                    if slot.coa_type == "MESH":
+                    if slot.coa_tools.type == "MESH":
                         anim_data["ffd"].append({"name":slot.data.name,"slot":slot.name,"frame":[]})
                         ffd_keyframe_duration[slot.data.name] = {"ffd_duration":0}
                         ffd_last_frame_values[slot.data.name] = None
-                    elif slot.coa_type == "SLOT":
-                        for slot2 in slot.coa_slot:
+                    elif slot.coa_tools.type == "SLOT":
+                        for slot2 in slot.coa_tools.slot:
                             anim_data["ffd"].append({"name":slot2.mesh.name,"slot":slot.name,"frame":[]})
                             ffd_keyframe_duration[slot2.mesh.name] = {"ffd_duration":0}
                             ffd_last_frame_values[slot2.mesh.name] = None
+
+            ### gather timeline events
+
+            for i, timeline_event in enumerate(anim.timeline_events):
+
+                if i == 0:
+                    if timeline_event.frame != 0:
+                        anim_data["frame"].append({"duration": timeline_event.frame})
+
+                if i < len(anim.timeline_events)-1:
+                    next_event = anim.timeline_events[i+1]
+
+                    duration = next_event.frame - timeline_event.frame
+                else:
+                    duration = anim.frame_end - timeline_event.frame
+
+                event_data = {}
+                event_data["duration"] = duration
+                for event in timeline_event.event:
+                    if event.type == "SOUND":
+                        event_data["sound"] = event.value
+                    elif event.type == "ANIMATION":
+                        event_data["action"] = event.animation
+                    elif event.type == "EVENT":
+                        if "events" not in event_data:
+                            event_data["events"] = []
+                        custom_event = {}
+                        custom_event["name"] = event.value
+                        if event.target != "":
+                            custom_event["bone"] = event.target
+                        if event.int != "":
+                            custom_event["ints"] = [int(event.int)]
+                        if event.float != "":
+                            custom_event["floats"] = [float(event.float)]
+                        if event.string != "":
+                            custom_event["strings"] = [event.string]
+                        event_data["events"].append(custom_event)
+
+                anim_data["frame"].append(event_data)
 
             ### check if slot has animation data. if so, store for later usage                
             SHAPEKEY_ANIMATION = {}
             for i in range(anim.frame_end+1):
                 frame = anim.frame_end-i
+                slot_data = None
                 for slot in self.sprites:
                     if slot.type == "MESH":
 
                         slot_data = []
-                        if slot.coa_type == "MESH":
+                        if slot.coa_tools.type == "MESH":
                             slot_data = [tmp_slots_data[slot.data.name]]
-                        elif slot.coa_type == "SLOT":
-                            for slot2 in slot.coa_slot:
+                        elif slot.coa_tools.type == "SLOT":
+                            for slot2 in slot.coa_tools.slot:
                                 slot_data.append(tmp_slots_data[slot2.mesh.name])
+                if slot_data != None:
+                    for item in slot_data:
+                        data = item["data"]
+                        data_name = item["name"]
 
-                for item in slot_data:
-                    data = item["data"]
-                    data_name = item["name"]
-
-                    key_blocks = []
-                    if data.shape_keys != None:
-                        for key in data.shape_keys.key_blocks:
-                            key_blocks.append(key.name)
-                    if property_key_on_frame(data,key_blocks,frame,type="SHAPEKEY"):
-                        SHAPEKEY_ANIMATION[slot.name] = True
-                        break
+                        key_blocks = []
+                        if data.shape_keys != None:
+                            for key in data.shape_keys.key_blocks:
+                                key_blocks.append(key.name)
+                        if property_key_on_frame(data,key_blocks,frame,type="SHAPEKEY"):
+                            SHAPEKEY_ANIMATION[slot.name] = True
+                            break
 
 
             ### append all bones to list
@@ -944,8 +1020,25 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                     if slot.type == "MESH":
                         slot_keyframe_duration[slot.name]["color_duration"] += 1
                         slot_keyframe_duration[slot.name]["display_duration"] += 1
+                        slot_keyframe_duration[slot.name]["z_order_duration"] += 1
 
-                        if property_key_on_frame(slot,["coa_alpha","coa_modulate_color"],frame):
+                        if property_key_on_frame(slot,["coa_tools.z_value"], frame):
+                            z_order_data = {}
+                            z_order_data["duration"] = slot_keyframe_duration[slot.name]["z_order_duration"]
+                            z_order_data["zOrder"] = []
+                            for s in self.sprites:
+                                if s.type == "MESH":
+                                    if z_order_defaults[s.name]["zOrder"] != get_z_order(self, s):
+                                        z_order_data["zOrder"].append(z_order_defaults[s.name]["zOrder"])
+                                        z_order_data["zOrder"].append(get_z_order(self, s) - z_order_defaults[s.name]["zOrder"])
+                            if "frame" not in anim_data["zOrder"]:
+                                anim_data["zOrder"]["frame"] = []
+                            anim_data["zOrder"]["frame"].insert(0, z_order_data)
+
+                            slot_keyframe_duration[slot.name]["z_order_duration"] = 0
+
+
+                        if property_key_on_frame(slot,["coa_tools.alpha","coa_tools.modulate_color"],frame):
 
                             keyframe_data = {}
                             keyframe_data["duration"] = slot_keyframe_duration[slot.name]["color_duration"]
@@ -955,10 +1048,10 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                             anim_data["slot"][j]["colorFrame"].insert(0,keyframe_data)
                             slot_keyframe_duration[slot.name]["color_duration"] = 0
 
-                        if property_key_on_frame(slot,["coa_slot_index"],frame) or frame in [0,anim.frame_end]:
+                        if property_key_on_frame(slot,["coa_tools.slot_index"],frame) or frame in [0,anim.frame_end]:
                             keyframe_data = {}
                             keyframe_data["duration"] = slot_keyframe_duration[slot.name]["display_duration"]
-                            keyframe_data["value"] = slot.coa_slot_index
+                            keyframe_data["value"] = slot.coa_tools.slot_index
 
                             anim_data["slot"][j]["displayFrame"].insert(0,keyframe_data)
                             slot_keyframe_duration[slot.name]["display_duration"] = 0
@@ -977,7 +1070,7 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                         bone_keyframe_duration[bone.name]["rot_duration"] += 1
                         bone_keyframe_duration[bone.name]["pos_duration"] += 1
 
-                        bake_anim = self.scene.coa_export_bake_anim and frame%self.scene.coa_export_bake_steps==0
+                        bake_anim = self.scene.coa_tools.export_bake_anim and frame%self.scene.coa_tools.export_bake_steps==0
 
                         ### bone position
                         if bone_key_on_frame(bone_orig,frame,armature_orig.animation_data,type="LOCATION") or frame in [0,anim.frame_end] or const_len > 0 or in_ik_chain or bake_anim:
@@ -1076,17 +1169,17 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
                     if slot.type == "MESH":
 
                         slot_data = []
-                        if slot.coa_type == "MESH":
+                        if slot.coa_tools.type == "MESH":
                             slot_data = [tmp_slots_data[slot.data.name]]
-                        elif slot.coa_type == "SLOT":
-                            for slot2 in slot.coa_slot:
+                        elif slot.coa_tools.type == "SLOT":
+                            for slot2 in slot.coa_tools.slot:
                                 slot_data.append(tmp_slots_data[slot2.mesh.name])
 
                         for item in slot_data:
                             data = item["data"]
                             data_name = item["name"]
 
-                            bake_anim = self.scene.coa_export_bake_anim and frame%self.scene.coa_export_bake_steps==0
+                            bake_anim = self.scene.coa_tools.export_bake_anim and frame%self.scene.coa_tools.export_bake_steps==0
 
                             if data.shape_keys != None:
                                 ffd_keyframe_duration[data_name]["ffd_duration"] += 1
@@ -1153,13 +1246,13 @@ def get_animation_data(self,sprite_object,armature,armature_orig):
     return animations
 
 
-class DragonBonesExport(bpy.types.Operator):
+class COATOOLS_OT_DragonBonesExport(bpy.types.Operator):
     bl_idname = "coa_tools.export_dragon_bones"
     bl_label = "Dragonbones Export"
     bl_description = ""
     bl_options = {"REGISTER"}
 
-    reduce_size = BoolProperty(default=False)
+    reduce_size: BoolProperty(default=False)
 
     sprite_object = None
     armature = None
@@ -1175,7 +1268,8 @@ class DragonBonesExport(bpy.types.Operator):
         return True
 
     def __init__(self):
-        self.reduce_size = bpy.context.scene.coa_minify_json
+        self.reduce_size = bpy.context.scene.coa_tools.minify_json
+        self.sprite_scale = bpy.context.scene.coa_tools.sprite_scale
 
     def draw(self,context):
         layout = self.layout
@@ -1206,22 +1300,23 @@ class DragonBonesExport(bpy.types.Operator):
         self.active_object = context.active_object
         self.sprite_object = get_sprite_object(context.active_object)
 
-        self.animation_index = self.sprite_object.coa_anim_collections_index
+        self.animation_index = self.sprite_object.coa_tools.anim_collections_index
         self.frame_current = context.scene.frame_current
 
     def set_init_state(self,context):
         for obj in context.scene.objects:
             if obj in self.selected_objects:
-                obj.select = True
+                obj.select_set(True)
             else:
-                obj.select = False
-        context.scene.objects.active = self.active_object
+                obj.select_set(False)
+        context.view_layer.objects.active = self.active_object
 
-        if len(self.sprite_object.coa_anim_collections) > 0:
-            self.sprite_object.coa_anim_collections_index = self.animation_index
+        if len(self.sprite_object.coa_tools.anim_collections) > 0:
+            self.sprite_object.coa_tools.anim_collections_index = self.animation_index
         context.scene.frame_current = self.frame_current
 
     def execute(self, context):
+        bpy.ops.ed.undo_push(message="Export to Dragonbones")
         global tmp_slots_data
         tmp_slots_data = {}
 
@@ -1229,8 +1324,8 @@ class DragonBonesExport(bpy.types.Operator):
         self.scene = context.scene
 
         ### set animation mode to action
-        coa_nla_mode = str(self.scene.coa_nla_mode)
-        self.scene.coa_nla_mode = "ACTION"
+        coa_nla_mode = str(self.scene.coa_tools.nla_mode)
+        self.scene.coa_tools.nla_mode = "ACTION"
 
 
         ### get sprite object, sprites and armature
@@ -1244,9 +1339,9 @@ class DragonBonesExport(bpy.types.Operator):
         self.armature = create_cleaned_armature_copy(self,self.armature_orig,self.sprites) ### create a cleaned copy of the armature that contains only deform bones and which has applied copy transform constraints
 
         ### get export, project and json path
-        export_path = bpy.path.abspath(self.scene.coa_export_path)
-        texture_dir_path = os.path.join(export_path , self.scene.coa_project_name+"_texture")
-        json_path = os.path.join(export_path,self.scene.coa_project_name+"_ske.json")
+        export_path = bpy.path.abspath(self.scene.coa_tools.export_path)
+        texture_dir_path = os.path.join(export_path , self.scene.coa_tools.project_name+"_texture")
+        json_path = os.path.join(export_path,self.scene.coa_tools.project_name+"_ske.json")
 
         ### check if export dir exists
         if not os.path.exists(export_path):
@@ -1255,17 +1350,17 @@ class DragonBonesExport(bpy.types.Operator):
 
 
         ### export texture atlas
-        if self.scene.coa_export_image_mode == "ATLAS":
+        if self.scene.coa_tools.export_image_mode == "ATLAS":
             sprites = [sprite for sprite in self.sprites if sprite.type == "MESH"]
             if len(sprites) > 0:
-                generate_texture_atlas(self, sprites,self.scene.coa_project_name,export_path,
-                                       img_width=self.scene.coa_atlas_resolution_x,
-                                       img_height=self.scene.coa_atlas_resolution_y,
-                                       sprite_scale=self.scene.coa_sprite_scale,
-                                       margin=self.scene.coa_atlas_island_margin)
+                generate_texture_atlas(self, sprites,self.scene.coa_tools.project_name,export_path,
+                                       img_width=self.scene.coa_tools.atlas_resolution_x,
+                                       img_height=self.scene.coa_tools.atlas_resolution_y,
+                                       sprite_scale=self.scene.coa_tools.sprite_scale,
+                                       margin=self.scene.coa_tools.atlas_island_margin)
 
         ### create texture directory
-        if self.scene.coa_export_image_mode == "IMAGES":
+        if self.scene.coa_tools.export_image_mode == "IMAGES":
             if os.path.exists(texture_dir_path):
                 shutil.rmtree(texture_dir_path)
             os.makedirs(texture_dir_path)
@@ -1278,8 +1373,8 @@ class DragonBonesExport(bpy.types.Operator):
             self.armature.data.pose_position = "REST"
             self.armature_orig.data.pose_position = "REST"
 
-        self.json_data = setup_json_project(self.scene.coa_project_name) ### create base template
-        self.json_data["armature"] =  [setup_armature_data(self.sprite_object)] ### create base armature
+        self.json_data = setup_json_project(self.scene.coa_tools.project_name) ### create base template
+        self.json_data["armature"] =  [setup_armature_data(self.sprite_object, self.scene.coa_tools.armature_name)] ### create base armature
         self.json_data["armature"][0]["frameRate"] = self.scene.render.fps
         self.json_data["armature"][0]["slot"] = get_slot_data(self,self.sprites)
         self.json_data["armature"][0]["skin"] = get_skin_data(self,self.sprites,self.armature,self.scale)
@@ -1312,34 +1407,23 @@ class DragonBonesExport(bpy.types.Operator):
         for key in tmp_slots_data:
             bpy.data.objects.remove(tmp_slots_data[key]["object"], do_unlink=True)
 
-        self.scene.coa_nla_mode = coa_nla_mode
+        self.scene.coa_tools.nla_mode = coa_nla_mode
+
+        # cleanup scene and add an undo history step
+        bpy.ops.ed.undo_push(message="Export Creature")
+        bpy.ops.ed.undo()
+        bpy.ops.ed.undo_push(message="Export Creature")
 
         self.report({"INFO"},"Export successful.")
         return {"FINISHED"}
 
 
-class COAExportPanel(bpy.types.Panel):
-    bl_idname = "coa_export_panel"
+class COATOOLS_PT_ExportPanel(bpy.types.Panel):
+    bl_idname = "COATOOLS_PT_export_panel"
     bl_label = "COA Export Panel"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "render"
-
-    bpy.types.Scene.coa_project_name = bpy.props.StringProperty(default="New Project", name="Project name")
-    bpy.types.Scene.coa_runtime_format = bpy.props.EnumProperty(default="CREATURE", description="Exports for choosen runtime.",items=(("CREATURE","Creature","Creature"),("DRAGONBONES","Dragonbones","Dragonbones")))
-    bpy.types.Scene.coa_export_path = bpy.props.StringProperty(default="", name="Export Path",subtype="DIR_PATH")
-    bpy.types.Scene.coa_export_image_mode = bpy.props.EnumProperty(default="ATLAS", name="Image Mode",items=(("ATLAS","Atlas","Atlas"),("IMAGES","Images","Images")))
-    bpy.types.Scene.coa_atlas_mode = bpy.props.EnumProperty(default="AUTO_SIZE", name="Atlas Mode",items=(("AUTO_SIZE", "Auto Size", "Auto Size"),("LIMIT_SIZE","Limit Size","Limit Size")))
-    bpy.types.Scene.coa_sprite_scale = bpy.props.FloatProperty(default=1.0, min=0.1, max=1.0, name="Sprite Output Scale", description="Define the Sprite Output Scale", step=0.1)
-    bpy.types.Scene.coa_atlas_resolution_x = bpy.props.IntProperty(default=1024,name="Resolution X",min=8,subtype="PIXEL")
-    bpy.types.Scene.coa_atlas_resolution_y = bpy.props.IntProperty(default=1024, name="Resolution Y",min=8,subtype="PIXEL")
-    bpy.types.Scene.coa_atlas_island_margin = bpy.props.IntProperty(default=1, name="Texture Island Margin",min=1,subtype="PIXEL")
-    bpy.types.Scene.coa_export_bake_anim = bpy.props.BoolProperty(default=False, name="Bake Animation")
-    bpy.types.Scene.coa_export_bake_steps = bpy.props.IntProperty(default=1, min=1, name="Bake Steps",description="Set key every x Frame.")
-    bpy.types.Scene.coa_minify_json = bpy.props.BoolProperty(default=True, name="Minify Json File", description="Minifies the json file for a fast loading file. Good if used in Web Applications.")
-    bpy.types.Scene.coa_export_square_atlas = bpy.props.BoolProperty(default=True, name="Force Square Texture Atlas", description="This option makes sure the exported Atlas is always perfectly squared.")
-    bpy.types.Scene.coa_export_texture_bleed = bpy.props.IntProperty(default=0, min=0, name="Texture Bleeding", subtype="PIXEL", description="Defines how far the texture extends the mesh boundaries.")
-    bpy.types.Scene.coa_armature_scale = bpy.props.FloatProperty(default=1.0, min=0.1, name="Armature Output Scale", description="Define the Armature Output Scale", step=0.1)
 
     def draw(self, context):
 
@@ -1347,43 +1431,44 @@ class COAExportPanel(bpy.types.Panel):
         self.scene = context.scene
 
         col = layout.column()
-        col.prop(self.scene, "coa_project_name", text="Project Name")
-        col.prop(self.scene, "coa_export_path", text="Export Path")
+        col.prop(self.scene.coa_tools, "project_name", text="Project Name")
+        col.prop(self.scene.coa_tools, "armature_name", text="Armature Name")
+        col.prop(self.scene.coa_tools, "export_path", text="Export Path")
 
         col = layout.column(align=True)
         row = col.row()
-        row.prop(self.scene, "coa_runtime_format", expand=True)
+        row.prop(self.scene.coa_tools, "runtime_format", expand=True)
 
         box = col.box()
 
         box_col = box.column()
         box_col.label(text="Atlas Settings:")
         row = box_col.row()
-        row.prop(self.scene, "coa_atlas_mode", expand=True)
+        row.prop(self.scene.coa_tools, "atlas_mode", expand=True)
         subcol = box_col.column(align=True)
-        subcol.prop(self.scene, "coa_sprite_scale", slider=True)
-        if self.scene.coa_atlas_mode == "LIMIT_SIZE":
-            subcol.prop(self.scene, "coa_atlas_resolution_x", text="X")
-            subcol.prop(self.scene, "coa_atlas_resolution_y", text="Y")
-        subcol.prop(self.scene, "coa_atlas_island_margin")
-        subcol.prop(self.scene, "coa_export_texture_bleed")
-        subcol.prop(self.scene, "coa_export_square_atlas")
+        subcol.prop(self.scene.coa_tools, "sprite_scale", slider=True)
+        if self.scene.coa_tools.atlas_mode == "LIMIT_SIZE":
+            subcol.prop(self.scene.coa_tools, "atlas_resolution_x", text="X")
+            subcol.prop(self.scene.coa_tools, "atlas_resolution_y", text="Y")
+        subcol.prop(self.scene.coa_tools, "atlas_island_margin")
+        # subcol.prop(self.scene.coa_tools, "export_texture_bleed")
+        subcol.prop(self.scene.coa_tools, "export_square_atlas")
 
         box_col.label(text="Data Settings:")
         subrow = box_col.row(align=True)
-        if self.scene.coa_runtime_format == "DRAGONBONES":
-            subrow.prop(self.scene, "coa_export_bake_anim")
-            if self.scene.coa_export_bake_anim:
-                subrow.prop(self.scene, "coa_export_bake_steps")
-        box_col.prop(self.scene, "coa_minify_json")
-        box_col.prop(self.scene, "coa_armature_scale")
+        if self.scene.coa_tools.runtime_format == "DRAGONBONES":
+            subrow.prop(self.scene.coa_tools, "export_bake_anim")
+            if self.scene.coa_tools.export_bake_anim:
+                subrow.prop(self.scene.coa_tools, "export_bake_steps")
+        box_col.prop(self.scene.coa_tools, "minify_json")
+        box_col.prop(self.scene.coa_tools, "armature_scale")
 
-        if self.scene.coa_runtime_format == "CREATURE":
+        if self.scene.coa_tools.runtime_format == "CREATURE":
             op = col.operator("coa_tools.export_creature", text="Export")
-            op.export_path = self.scene.coa_export_path
-            op.project_name = str(self.scene.coa_project_name).lower()
+            op.export_path = self.scene.coa_tools.export_path
+            op.project_name = str(self.scene.coa_tools.project_name).lower()
 
-        elif self.scene.coa_runtime_format == "DRAGONBONES":
+        elif self.scene.coa_tools.runtime_format == "DRAGONBONES":
             op = col.operator("coa_tools.export_dragon_bones", text="Export")
 
 
@@ -1396,26 +1481,26 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
 
     ### deselect all objects
     for obj in context.scene.objects:
-        obj.select = False
+        obj.select_set(False)
 
     ### get a list of all sprites and containing slots    
     slots = []
     for sprite in sprites:
         if sprite.type == "MESH":
-            if sprite.coa_type == "MESH":
+            if sprite.coa_tools.type == "MESH":
                 slots.append({"sprite":sprite,"slot":sprite.data})
-            elif sprite.coa_type == "SLOT":
-                for i,slot in enumerate(sprite.coa_slot):
+            elif sprite.coa_tools.type == "SLOT":
+                for i,slot in enumerate(sprite.coa_tools.slot):
                     slots.append({"sprite":sprite,"slot":slot.mesh})
 
     ### loop over all slots and create an object with slot assigned
     for slot in slots:
         dupli_sprite = slot["sprite"].copy()
         dupli_sprite.data = slot["slot"].copy()
-        context.scene.objects.link(dupli_sprite)
-        dupli_sprite.hide = False
-        dupli_sprite.select = True
-        context.scene.objects.active = dupli_sprite
+        context.collection.objects.link(dupli_sprite)
+        dupli_sprite.hide_set(False)
+        dupli_sprite.select_set(True)
+        context.view_layer.objects.active = dupli_sprite
 
         ### delete shapekeys
         if dupli_sprite.data.shape_keys != None:
@@ -1431,7 +1516,10 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
                     override = bpy.context.copy()
                     override["object"] = dupli_sprite
                     override["active_object"] = dupli_sprite
-                    bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
+                    if b_version_smaller_than((2,90,0)):
+                        bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
+                    else:
+                        bpy.ops.object.modifier_apply(override, modifier=modifier.name)
         for modifier in dupli_sprite.modifiers:
             dupli_sprite.modifiers.remove(modifier)
 
@@ -1459,7 +1547,19 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
 
         bpy.ops.object.mode_set(mode="OBJECT")
 
-    img_atlas, tex_atlas_obj, atlas = TextureAtlasGenerator.generate_uv_layout(name="COA_UV_ATLAS", objects=context.selected_objects, width=16, height=16, max_width=img_width, max_height=img_height, margin=margin, texture_bleed=0, square=False, output_scale=sprite_scale)
+    img_atlas, tex_atlas_obj, atlas = TextureAtlasGenerator.generate_uv_layout(
+        name="COA_UV_ATLAS",
+        objects=context.selected_objects,
+        width=2,
+        height=2,
+        max_width=img_width,
+        max_height=img_height,
+        margin=self.scene.coa_tools.atlas_island_margin,
+        texture_bleed=self.scene.coa_tools.export_texture_bleed,
+        square=self.scene.coa_tools.export_square_atlas,
+        output_scale=self.sprite_scale
+    )
+
     img_width = atlas.width
     img_height = atlas.height
 
@@ -1522,7 +1622,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
     texture_atlas["width"] = img_width
     texture_atlas["height"] = img_height
     texture_atlas["imagePath"] = atlas_name + "_tex.png"
-    texture_atlas["name"] = self.scene.coa_project_name
+    texture_atlas["name"] = self.scene.coa_tools.project_name
     texture_atlas["SubTexture"] = sprite_data
 
     if self.reduce_size:
@@ -1536,7 +1636,7 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
     text_file.close()
 
     compression_rate = int(context.scene.render.image_settings.compression)
-    context.scene.render.image_settings.compression = 100
+    context.scene.render.image_settings.compression = 85
     texture_path = os.path.join(img_path,atlas_name+"_tex.png")
     img_atlas.save_render(texture_path)
     context.scene.render.image_settings.compression = compression_rate

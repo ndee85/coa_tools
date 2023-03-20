@@ -1,4 +1,5 @@
 import bpy
+import bmesh
 from ... functions import *
 
 def property_key_on_frame(obj,prop_names,frame,type="PROPERTY"):
@@ -40,14 +41,17 @@ def property_key_on_frame(obj,prop_names,frame,type="PROPERTY"):
 
 def remove_base_sprite(obj):
     active_object = bpy.context.active_object
-    bpy.context.scene.objects.active = obj
-    obj.hide = False
+    for modifier in obj.modifiers:
+        if modifier.name == "coa_base_sprite":
+            obj.modifiers.remove(modifier)
+    bpy.context.view_layer.objects.active = obj
+    obj.hide_set(False)
     bpy.ops.object.mode_set(mode="EDIT")
     bm = bmesh.from_edit_mesh(obj.data)
     bm.verts.ensure_lookup_table()
     verts = []
 
-    if "coa_base_sprite" in obj.vertex_groups and obj.data.coa_hide_base_sprite:
+    if "coa_base_sprite" in obj.vertex_groups and obj.data.coa_tools.hide_base_sprite:
         v_group_idx = obj.vertex_groups["coa_base_sprite"].index
         for i,vert in enumerate(obj.data.vertices):
             for g in vert.groups:
@@ -60,7 +64,7 @@ def remove_base_sprite(obj):
     bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
 
 
-    bmesh.ops.delete(bm,geom=verts,context=1)
+    bmesh.ops.delete(bm,geom=verts,context="VERTS")
     bm = bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.context.scene.objects.active = active_object
+    bpy.context.view_layer.objects.active = active_object

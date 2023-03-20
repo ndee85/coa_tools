@@ -13,7 +13,7 @@ def draw_edit_mode(self,context,color=[0.41, 0.38, 1.0, 1.0],text="Edit Shapekey
     scale = clamp(scale,.5,1.5)
     
     r_offset = 0
-    if context.user_preferences.system.use_region_overlap:
+    if context.preferences.system.use_region_overlap:
         r_offset = context.area.regions[1].width
 
     ### draw box behind text
