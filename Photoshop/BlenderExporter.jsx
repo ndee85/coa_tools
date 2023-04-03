@@ -349,8 +349,16 @@ with(win){
 	win.export_json = add( "checkbox", [5,130,180,150], 'Export Json File' );
 	win.crop_layers = add( "checkbox", [5,90,180,110], 'Crop Layers' );
 	}
-win.export_path.text = app.activeDocument.info.caption;
-win.export_name.text = app.activeDocument.info.captionWriter;
+if (app.activeDocument.info.caption != ''){
+    win.export_path.text = app.activeDocument.info.caption;
+    }else{
+    win.export_path.text = app.activeDocument.path;    
+    }
+if (app.activeDocument.info.captionWriter != ''){
+    win.export_name.text = app.activeDocument.info.captionWriter;
+    }else{
+    win.export_name.text = app.activeDocument.name.split('.')[0];
+    }
 win.export_button.onClick = export_button;
 win.button_path.onClick = path_button;
 win.center_sprites.value = true;
