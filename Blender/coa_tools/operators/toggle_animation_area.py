@@ -20,13 +20,14 @@ class COATOOLS_OT_ToggleAnimationArea(bpy.types.Operator):
     def split_area(self,context,type="DOPESHEET_EDITOR",direction="HORIZONTAL",reference_area=None,ratio=0.7):
         start_areas = context.screen.areas[:]
 
-        override = bpy.context.copy()
+        area = None
         if reference_area != None:
-            override["area"] = reference_area
+            area = reference_area
         else:    
-            override["area"] = context.area
-            
-        bpy.ops.screen.area_split(override,direction=direction,factor=ratio)    
+            area = context.area
+
+        with bpy.context.temp_override(area=area): 
+            bpy.ops.screen.area_split(direction=direction,factor=ratio)    
 
         for area in context.screen.areas:
             if area not in start_areas:

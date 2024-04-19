@@ -527,11 +527,8 @@ def get_skin_slot(self,sprite,armature,scale,slot_data=None):
     for area in context.screen.areas:
             if area.type == "VIEW_3D":
                 for region in area.regions:
-                    override = context.copy()
-                    override["object"] = sprite
-                    override["edit_object"] = sprite
-                    #bpy.ops.object.vertex_group_clean(override, group_select_mode='BONE_DEFORM', keep_single=True)
-                    bpy.ops.object.vertex_group_clean(override, group_select_mode='ALL', keep_single=True)
+                    with bpy.context.temp_override(object=sprite, edit_object=sprite):
+                        bpy.ops.object.vertex_group_clean(group_select_mode='ALL', keep_single=True)
     ###
 
     global tmp_sprites
@@ -1513,13 +1510,11 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
             if modifier.name == "coa_base_sprite" and modifier.type == "MASK":
                 if len(dupli_sprite.data.vertices) > 4:
                     modifier.invert_vertex_group = True
-                    override = bpy.context.copy()
-                    override["object"] = dupli_sprite
-                    override["active_object"] = dupli_sprite
-                    if b_version_smaller_than((2,90,0)):
-                        bpy.ops.object.modifier_apply(override, apply_as="DATA", modifier=modifier.name)
-                    else:
-                        bpy.ops.object.modifier_apply(override, modifier=modifier.name)
+                    with bpy.context.temp_override(object=dupli_sprite, active_object=dupli_sprite):
+                        if b_version_smaller_than((2,90,0)):
+                            bpy.ops.object.modifier_apply(apply_as="DATA", modifier=modifier.name)
+                        else:
+                            bpy.ops.object.modifier_apply(modifier=modifier.name)
         for modifier in dupli_sprite.modifiers:
             dupli_sprite.modifiers.remove(modifier)
 
@@ -1536,13 +1531,8 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
             if area.type == "VIEW_3D":
                 for region in area.regions:
                     if region.type == "WINDOW":
-                        override = context.copy()
-                        override["area"] = area
-                        override["edit_object"] = dupli_sprite
-                        override["active_object"] = dupli_sprite
-                        override["object"] = dupli_sprite
-                        override["region"] = region
-                        bpy.ops.object.vertex_group_assign(override)
+                        with bpy.context.temp_override(area=area, edict_object=dupli_sprite, active_object=dupli_sprite, object=dupli_sprite, region=region):
+                            bpy.ops.object.vertex_group_assign()
                         break
 
         bpy.ops.object.mode_set(mode="OBJECT")
@@ -1578,14 +1568,10 @@ def generate_texture_atlas(self, sprites, atlas_name, img_path, img_width=512, i
                 for region in area.regions:
                     if region.type == "WINDOW":
                         override = context.copy()
-                        override["area"] = area
-                        override["edit_object"] = tex_atlas_obj
-                        override["active_object"] = tex_atlas_obj
-                        override["object"] = tex_atlas_obj
-                        override["region"] = region
-                        bpy.ops.object.vertex_group_set_active(override, group=group.name)
-                        bpy.ops.mesh.select_all(action='DESELECT')
-                        bpy.ops.object.vertex_group_select(override)
+                        with bpy.context.temp_override(area=area, edit_object=tex_atlas_obj, active_object=tex_atlas_obj, object=tex_atlas_obj, region=region):
+                            bpy.ops.object.vertex_group_set_active(group=group.name)
+                            bpy.ops.mesh.select_all(action='DESELECT')
+                            bpy.ops.object.vertex_group_select()
                         break
         bmesh.update_edit_mesh(tex_atlas_obj.data)
         x = 1.0

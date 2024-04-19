@@ -603,10 +603,8 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
 
         # create default animation if no anim collection found
         if len(anim_collections) == 0:
-            override = context.copy()
-            override["active_object"] = self.sprite_object
-            override["object"] = self.sprite_object
-            bpy.ops.coa_tools.add_animation_collection(override)
+            with bpy.context.temp_override(active_object=self.sprite_object, object=self.sprite_object):
+                bpy.ops.coa_tools.add_animation_collection()
             anim_collection = anim_collections[len(anim_collections)-1]
             anim_collection.name = "default"
             anim_collection.frame_end = 1

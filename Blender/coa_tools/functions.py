@@ -39,10 +39,8 @@ def get_active_tool(mode): #"EDIT_MESH", "EDIT_ARMATURE", "OBJECT"
 def set_active_tool(self, context, tool_name):
     for area in context.screen.areas:
         if area.type == "VIEW_3D":
-            override = bpy.context.copy()
-            override["space_data"] = area.spaces[0]
-            override["area"] = area
-            bpy.ops.wm.tool_set_by_id(override, name=tool_name)
+            with bpy.context.temp_override(space_data=area.spaces[0], area=area):
+                bpy.ops.wm.tool_set_by_id(name=tool_name)
 
 def link_object(context, obj):
     active_collection = bpy.data.collections[context.scene.coa_tools.active_collection]
@@ -535,14 +533,14 @@ def create_armature_parent(context):
 def set_local_view(local):
     for area in bpy.context.screen.areas:
         if area.type == 'VIEW_3D':
-            override = bpy.context.copy()
-            override["area"] = area
             if local:
                 if area.spaces.active.local_view == None:
-                    bpy.ops.view3d.localview(override)
+                    with bpy.context.temp_override(area=area):
+                        bpy.ops.view3d.localview()
             else:
                 if area.spaces.active.local_view != None:
-                    bpy.ops.view3d.localview(override)
+                    with bpy.context.temp_override(area=area):
+                        bpy.ops.view3d.localview()  
                         
 
 def actions_callback(self,context):
@@ -598,12 +596,9 @@ def set_view(scene,mode):
                         if hasattr(active_space_data,"region_3d"):
                             region_3d = active_space_data.region_3d
                             region_3d.view_perspective = "ORTHO"
-                            override = bpy.context.copy()
-                            override["screen"] = screen
-                            override["space_data"] = active_space_data
-                            override["area"] = area
 
-                            bpy.ops.view3d.view_axis(override, type='FRONT', align_active=False, relative=False)
+                            with bpy.context.temp_override(screen=screen, area=area, space_data=active_space_data):
+                                bpy.ops.view3d.view_axis(type='FRONT', align_active=False, relative=False)
 
     elif mode == "3D":
         for screen in bpy.data.screens:
