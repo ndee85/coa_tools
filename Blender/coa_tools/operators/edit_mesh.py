@@ -29,8 +29,9 @@ import bmesh
 from bpy.props import FloatProperty, IntProperty, BoolProperty, StringProperty, CollectionProperty, FloatVectorProperty, EnumProperty, IntVectorProperty
 from .. import functions
 from .. functions_draw import  * 
-import bgl
-import blf
+# import bgl
+# import blf
+import gpu
 from math import radians, degrees
 import traceback
 import gpu
@@ -1009,8 +1010,8 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                     
                 ### check if mouse is in 3d View
                 coord = mathutils.Vector((event.mouse_region_x, event.mouse_region_y))
-                
-                if coord[0] < 0 or coord[0] > bpy.context.area.width:
+                view_3d_width = bpy.context.area.width - bpy.context.area.regions[5].width
+                if coord[0] < 0 or coord[0] > view_3d_width:
                     self.inside_area = False
                     bpy.context.window.cursor_set("DEFAULT")
                 elif coord[1] < 0 or coord[1] > bpy.context.area.height:
@@ -1026,8 +1027,8 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                             bpy.context.window.cursor_set("KNIFE")
                         else:
                             bpy.context.window.cursor_set("PAINT_BRUSH")
-                  
-                    
+                if not self.inside_area:
+                    return {'PASS_THROUGH'}
                 ### Set Mouse click
                 if (event.value == 'PRESS' or event.value == 'CLICK') and event.type == click_button and self.mouse_press == False and not self.ctrl and not self.shift:
                     if not self.alt:
@@ -1390,11 +1391,11 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
             font_id = 0
             line = str(round(length,2))
             # bgl.glEnable(bgl.GL_BLEND)
-            blf.color(font_id, 1, 1, 1, 1)
+            # blf.color(font_id, 1, 1, 1, 1)
 
-            blf.position(font_id, self.mouse_2d_x-15, self.mouse_2d_y+30, 0)
-            blf.size(font_id, 20, 72)
-            blf.draw(font_id, line)
+            # blf.position(font_id, self.mouse_2d_x-15, self.mouse_2d_y+30, 0)
+            # blf.size(font_id, 20, 72)
+            # blf.draw(font_id, line)
 
         if self.mode == "EDIT_MESH":
             draw_edit_mode(self,bpy.context,color=[1.0, 0.39, 0.41, 1.0],text="Edit Mesh Mode",offset=-20)
@@ -1402,21 +1403,24 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
             draw_edit_mode(self,bpy.context,color=[1.0, 0.39, 0.41, 1.0],text="Draw Bone Shape",offset=-20)
 
     def draw_coords(self, coords=[], color=(1.0, 1.0, 1.0, 1.0), draw_type="LINE_STRIP", shader_type="2D_UNIFORM_COLOR", line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
-        bgl.glLineWidth(line_width)
-        if point_size != None:
-            bgl.glPointSize(point_size)
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glEnable(bgl.GL_LINE_SMOOTH)
+        # bgl.glLineWidth(line_width)
+        # if point_size != None:
+        #     bgl.glPointSize(point_size)
+        # bgl.glEnable(bgl.GL_BLEND)
+        # bgl.glEnable(bgl.GL_LINE_SMOOTH)
 
-        shader = gpu.shader.from_builtin(shader_type)
-        batch = batch_for_shader(shader, draw_type, {"pos": coords})
-        shader.bind()
-        shader.uniform_float("color", color)
-        batch.draw(shader)
+        # shader = gpu.shader.from_builtin(shader_type)
+        # batch = batch_for_shader(shader, draw_type, {"pos": coords})
+        # shader.bind()
+        # shader.uniform_float("color", color)
+        # batch.draw(shader)
 
-        bgl.glDisable(bgl.GL_BLEND)
-        bgl.glDisable(bgl.GL_LINE_SMOOTH)
-        return shader
+        # bgl.glDisable(bgl.GL_BLEND)
+        # bgl.glDisable(bgl.GL_LINE_SMOOTH)
+        # return shader
+
+        # draw_types -> LINE_STRIP, LINES, POINTS
+        pass
 
     def coord_3d_to_2d(self, coord):
         region = bpy.context.region
@@ -1457,7 +1461,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                     # bgl.glLineWidth(2)
 
                     if self.selected_vert_coord != None:
-                        bgl.glEnable(bgl.GL_LINE_SMOOTH)
+                        # bgl.glEnable(bgl.GL_LINE_SMOOTH)
                         vertex_vec = self.selected_vert_coord + y_offset
                         if self.point_type == "VERT":
                             color = green
