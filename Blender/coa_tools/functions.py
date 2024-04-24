@@ -586,7 +586,7 @@ def lock_view(screen, lock):
                         region.lock_rotation = False    
 
 
-def set_view(scene,mode):
+def set_view(scene, mode):
     if mode == "2D":
         for screen in bpy.data.screens:
             for area in screen.areas:
@@ -594,11 +594,7 @@ def set_view(scene,mode):
                     active_space_data = area.spaces[0]
                     if active_space_data != None:
                         if hasattr(active_space_data,"region_3d"):
-                            region_3d = active_space_data.region_3d
-                            region_3d.view_perspective = "ORTHO"
-
-                            with bpy.context.temp_override(screen=screen, area=area, space_data=active_space_data):
-                                bpy.ops.view3d.view_axis(type='FRONT', align_active=False, relative=False)
+                            bpy.ops.view3d.view_axis(type='FRONT', align_active=False, relative=False)
 
     elif mode == "3D":
         for screen in bpy.data.screens:
