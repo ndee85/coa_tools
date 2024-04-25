@@ -22,8 +22,8 @@ bl_info = {
     "name": "COA Tools",
     "description": "This Addon provides a Toolset for a 2D Animation Workflow.",
     "author": "Andreas Esau",
-    "version": (2, 0, 0),
-    "blender": (2, 80, 0),
+    "version": (3, 0, 0),
+    "blender": (4, 0, 0),
     "location": "View 3D > Tools > Cutout Animation Tools",
     "warning": "",
     "wiki_url": "https://github.com/ndee85/coa_tools/wiki",
@@ -331,7 +331,7 @@ def set_shading(dummy):
             for screen in bpy.data.screens:
                 for area in screen.areas:
                     if area.type == "VIEW_3D":
-                        area.spaces[0].shading.type = "MATERIAL"
+                        area.spaces[0].shading.type = "RENDERED"
             break
     bpy.ops.coa_tools.updater_check_now()
 
