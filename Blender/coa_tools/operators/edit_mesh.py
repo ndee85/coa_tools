@@ -29,7 +29,6 @@ import bmesh
 from bpy.props import FloatProperty, IntProperty, BoolProperty, StringProperty, CollectionProperty, FloatVectorProperty, EnumProperty, IntVectorProperty
 from .. import functions
 from .. functions_draw import  * 
-# import bgl
 # import blf
 import gpu
 from math import radians, degrees
@@ -1451,10 +1450,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                     vertex_vec_new = self.snapped_vert_coord + y_offset
 
                     color = green
-                    # bgl.glLineWidth(2)
-
                     if self.selected_vert_coord != None:
-                        # bgl.glEnable(bgl.GL_LINE_SMOOTH)
                         vertex_vec = self.selected_vert_coord + y_offset
                         if self.point_type == "VERT":
                             color = green
