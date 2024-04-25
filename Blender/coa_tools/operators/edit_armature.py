@@ -185,12 +185,11 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
         
     def create_default_bone_group(self,armature):
         default_bone_group = None
-        if "default_bones" not in armature.pose.bone_groups:
-            default_bone_group = armature.pose.bone_groups.new(name="default_bones")
-            default_bone_group.color_set = "THEME08"
+        if "default_bones" not in armature.data.collections:
+            default_bone_group = armature.data.collections.new("default_bones")
         else:
-            default_bone_group = armature.pose.bone_groups["default_bones"]
-        return default_bone_group
+            default_bone_group = armature.data.collections["default_bones"]
+        return default_bone_group 
 
     def create_bones(self, context, armature):
         if armature != None:
@@ -454,10 +453,9 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
 
         if context.active_object.type == "ARMATURE":
             bpy.ops.object.mode_set(mode="POSE")
-
-            for pose_bone in context.active_object.pose.bones:
-                if "default_bones" in context.active_object.pose.bone_groups and pose_bone.bone_group == None:
-                    pose_bone.bone_group = context.active_object.pose.bone_groups["default_bones"]
+            for bone in context.active_object.data.bones:
+                context.active_object.data.collections["default_bones"].assign(bone)
+                bone.color.palette = "THEME08"
         
         #lock_sprites(context,get_sprite_object(context.active_object),get_sprite_object(context.active_object).lock_sprites)
         self.sprite_object = bpy.data.objects[self.sprite_object_name]
