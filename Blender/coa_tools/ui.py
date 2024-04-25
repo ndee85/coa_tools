@@ -51,7 +51,7 @@ class COATOOLS_OT_ChangeShadingMode(bpy.types.Operator):
 
     def execute(self, context):
         context.scene.eevee.use_taa_reprojection = False
-        context.space_data.shading.type = 'MATERIAL'
+        context.space_data.shading.type = 'RENDERED'
         context.scene.view_settings.view_transform = "Standard"
         return {"FINISHED"}
 
@@ -69,7 +69,7 @@ class COATOOLS_PT_Info(bpy.types.Panel):
             return context
         if context.scene.coa_tools.deprecated_data_found:
             return context
-        if context.space_data.shading.type != "MATERIAL" or context.scene.view_settings.view_transform != "Standard":
+        if context.space_data.shading.type != "RENDERED" or context.scene.view_settings.view_transform != "Standard":
             return context
 
 
@@ -82,7 +82,7 @@ class COATOOLS_PT_Info(bpy.types.Panel):
             row = layout.row()
             row.operator("coa_tools.convert_deprecated_data", icon="LIBRARY_DATA_BROKEN")
 
-        if (context.space_data.shading.type != "MATERIAL" or context.scene.view_settings.view_transform != "Standard") and not context.scene.coa_tools.deprecated_data_found:
+        if (context.space_data.shading.type != "RENDERED" or context.scene.view_settings.view_transform != "Standard") and not context.scene.coa_tools.deprecated_data_found:
             row = layout.row()
             row.operator("coa_tools.change_shading_mode", text="Set Textured Shading Mode", icon="ERROR")
 

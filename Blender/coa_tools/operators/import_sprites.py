@@ -70,21 +70,23 @@ class COATOOLS_OT_CreateMaterialGroup(bpy.types.Operator):
         inputs = []
         for input_socket in self.input_sockets:
             inputs.append(input_socket["label"])
-            socket = group_tree.interface.new_socket(input_socket["label"], description="", in_out="INPUT",socket_type=input_socket["type"])
+            if input_socket["label"] not in group_tree.interface.items_tree:
+                socket = group_tree.interface.new_socket(input_socket["label"], description="", in_out="INPUT",socket_type=input_socket["type"])
 
-            if "min_value" in input_socket:
-                socket.min_value = input_socket["min_value"]
-            if "max_value" in input_socket:
-                socket.max_value = input_socket["max_value"]
+                if "min_value" in input_socket:
+                    socket.min_value = input_socket["min_value"]
+                if "max_value" in input_socket:
+                    socket.max_value = input_socket["max_value"]
 
         outputs = []
         for output_socket in self.output_sockets:
             outputs.append(output_socket["label"])
-            socket = group_tree.interface.new_socket(output_socket["label"], description="", in_out="OUTPUT",socket_type=output_socket["type"])
-            if "min_value" in output_socket:
-                socket.min_value = output_socket["min_value"]
-            if "max_value" in output_socket:
-                socket.max = output_socket["max_value"]
+            if output_socket["label"] not in group_tree.interface.items_tree:
+                socket = group_tree.interface.new_socket(output_socket["label"], description="", in_out="OUTPUT",socket_type=output_socket["type"])
+                if "min_value" in output_socket:
+                    socket.min_value = output_socket["min_value"]
+                if "max_value" in output_socket:
+                    socket.max = output_socket["max_value"]
 
         for socket in group_tree.interface.items_tree:
             if socket.name not in inputs and socket.in_out == "INPUT":
@@ -122,14 +124,14 @@ class COATOOLS_OT_CreateMaterialGroup(bpy.types.Operator):
         alpha_node.inputs[1].default_value = 1.0
 
         # link node sockets
+        group_tree.links.new(input_node.outputs["Texture Color"], modulate_node.inputs["Color1"])
         group_tree.links.new(input_node.outputs["Modulate Color"], modulate_node.inputs["Color2"])
+        group_tree.links.new(input_node.outputs["Texture Alpha"], alpha_node.inputs[0])
         group_tree.links.new(input_node.outputs["Alpha"], alpha_node.inputs[1])
 
-        group_tree.links.new(input_node.outputs["Texture Color"], modulate_node.inputs["Color1"])
         group_tree.links.new(modulate_node.outputs["Color"], principled_node.inputs["Base Color"])
         group_tree.links.new(modulate_node.outputs["Color"], principled_node.inputs["Emission Color"])
 
-        group_tree.links.new(input_node.outputs["Texture Alpha"], alpha_node.inputs[0])
         group_tree.links.new(alpha_node.outputs[0], principled_node.inputs["Alpha"])
         group_tree.links.new(principled_node.outputs["BSDF"], output_node.inputs["BSDF"])
 
@@ -137,6 +139,7 @@ class COATOOLS_OT_CreateMaterialGroup(bpy.types.Operator):
         principled_node.inputs["Specular IOR Level"].default_value = 0
         principled_node.inputs["Roughness"].default_value = 0
         principled_node.inputs["Coat Roughness"].default_value = 0
+        principled_node.inputs["Emission Strength"].default_value = 1
 
         # position nodes
         input_node.location = [0, 0]
@@ -408,7 +411,7 @@ class COATOOLS_OT_ImportSprites(bpy.types.Operator, ImportHelper):
     def execute(self, context):
         sprite_object = functions.get_sprite_object(context.active_object)
         
-        context.space_data.shading.type = "MATERIAL"
+        context.space_data.shading.type = "RENDERED"
         context.scene.view_settings.view_transform = "Standard"
         
         ext = os.path.splitext(self.filepath)[1]
