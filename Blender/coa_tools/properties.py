@@ -448,6 +448,8 @@ class SceneProperties(bpy.types.PropertyGroup):
     project_name: bpy.props.StringProperty(default="New Project", name="Project Name")
     armature_name: bpy.props.StringProperty(default="Armature", name="Armature Name")
     runtime_format: bpy.props.EnumProperty(default="CREATURE", description="Exports for choosen runtime.",items=(("CREATURE","Creature","Creature"),("DRAGONBONES","Dragonbones","Dragonbones")))
+    image_format: bpy.props.EnumProperty(name="Image Format", default="PNG", description="Exports Atlas in the chosen format.",items=(("PNG","PNG","PNG"),("WEBP","WEBP","WEBP")))
+    image_quality: bpy.props.IntProperty(name="Image Quality", default=90, min=0, max=100, description="Defines the Image Quality for the chosen Image Format. 100 is the best quality.", subtype="PERCENTAGE")
     export_path: bpy.props.StringProperty(default="", name="Export Path",subtype="DIR_PATH")
     export_image_mode: bpy.props.EnumProperty(default="ATLAS", name="Image Mode",items=(("ATLAS","Atlas","Atlas"),("IMAGES","Images","Images")))
     atlas_mode: bpy.props.EnumProperty(default="LIMIT_SIZE", name="Atlas Mode",items=(("AUTO_SIZE", "Auto Size", "Auto Size"),("LIMIT_SIZE","Limit Size","Limit Size")))

@@ -1449,6 +1449,12 @@ class COATOOLS_PT_ExportPanel(bpy.types.Panel):
             subcol.prop(self.scene.coa_tools, "atlas_resolution_y", text="Y")
         subcol.prop(self.scene.coa_tools, "atlas_island_margin")
         # subcol.prop(self.scene.coa_tools, "export_texture_bleed")
+        
+        row = subcol.row()
+        row.prop(self.scene.coa_tools, "image_format", expand=True)
+        if(self.scene.coa_tools.image_format == "WEBP"):
+            subcol.prop(self.scene.coa_tools, "image_quality", text="WebP Quality", slider=True)
+
         subcol.prop(self.scene.coa_tools, "export_square_atlas")
 
         box_col.label(text="Data Settings:")

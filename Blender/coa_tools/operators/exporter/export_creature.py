@@ -711,11 +711,17 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
         zip_file.write(json_path, os.path.basename(json_path))
         zip_file.close()
 
-    def save_texture_atlas(self, context, img_atlas, img_path, atlas_name):
+    def save_texture_atlas(self, context, img_atlas, img_path, atlas_name, file_format, quality=90):
         context.scene.render.image_settings.color_mode = "RGBA"
+        context.scene.render.image_settings.file_format = file_format
+        context.scene.render.image_settings.quality = quality
         compression_rate = int(context.scene.render.image_settings.compression)
         context.scene.render.image_settings.compression = 85
-        texture_path = os.path.join(img_path, atlas_name + "_atlas.png")
+        if file_format == "WEBP":
+            texture_path = os.path.join(img_path, atlas_name + "_atlas.webp")
+        elif file_format == "PNG":
+            texture_path = os.path.join(img_path, atlas_name + "_atlas.png")
+
         img_atlas.save_render(texture_path)
         context.scene.render.image_settings.compression = compression_rate
 
@@ -808,7 +814,7 @@ class COATOOLS_OT_CreatureExport(bpy.types.Operator):
 
 
         self.write_json_file()
-        self.save_texture_atlas(context, img_atlas, self.export_path_abs, self.project_name)
+        self.save_texture_atlas(context, img_atlas, self.export_path_abs, self.project_name, self.scene.coa_tools.image_format, self.scene.coa_tools.image_quality)
 
         context.window_manager.progress_end()
 
