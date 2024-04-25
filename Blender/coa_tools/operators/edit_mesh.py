@@ -1402,25 +1402,18 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
         elif self.mode == "DRAW_BONE_SHAPE":
             draw_edit_mode(self,bpy.context,color=[1.0, 0.39, 0.41, 1.0],text="Draw Bone Shape",offset=-20)
 
-    def draw_coords(self, coords=[], color=(1.0, 1.0, 1.0, 1.0), draw_type="LINE_STRIP", shader_type="2D_UNIFORM_COLOR", line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
-        # bgl.glLineWidth(line_width)
-        # if point_size != None:
-        #     bgl.glPointSize(point_size)
-        # bgl.glEnable(bgl.GL_BLEND)
-        # bgl.glEnable(bgl.GL_LINE_SMOOTH)
-
-        # shader = gpu.shader.from_builtin(shader_type)
-        # batch = batch_for_shader(shader, draw_type, {"pos": coords})
-        # shader.bind()
-        # shader.uniform_float("color", color)
-        # batch.draw(shader)
-
-        # bgl.glDisable(bgl.GL_BLEND)
-        # bgl.glDisable(bgl.GL_LINE_SMOOTH)
-        # return shader
-
-        # draw_types -> LINE_STRIP, LINES, POINTS
-        pass
+    def draw_coords(self, coords=[], color=(1.0, 1.0, 1.0, 1.0), draw_type="TRIS", shader_type="UNIFORM_COLOR", line_width=2, point_size=None):
+        
+        shader = gpu.shader.from_builtin(shader_type)
+        gpu.state.line_width_set(line_width)
+        if(point_size != None):
+            gpu.state.point_size_set(point_size)
+        # gpu.state.line_smooth_set(True)
+        batch = batch_for_shader(shader, draw_type, {"pos": coords})
+        shader.bind()
+        shader.uniform_float("color", color)
+        batch.draw(shader)
+        return shader
 
     def coord_3d_to_2d(self, coord):
         region = bpy.context.region
@@ -1471,7 +1464,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                         if not self.alt:
                             p1 = self.coord_3d_to_2d(vertex_vec)
                             p2 = self.coord_3d_to_2d(vertex_vec_new)
-                            self.draw_coords(coords=[p1, p2], color=color)
+                            self.draw_coords(coords=[p1, p2], color=color, draw_type=CONSTANTS.DRAW_LINE_STRIP, line_width=2)
 
                     if self.point_type == "VERT":
                         if self.alt:
@@ -1486,7 +1479,7 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
 
                         p1 = self.coord_3d_to_2d(obj.matrix_world @ self.verts_edges_data[0] + y_offset)
                         p2 = self.coord_3d_to_2d(obj.matrix_world @ self.verts_edges_data[1] + y_offset)
-                        self.draw_coords(coords=[p1,p2], color=color)
+                        self.draw_coords(coords=[p1,p2], color=color, draw_type=CONSTANTS.DRAW_LINE_STRIP)
                     else:
                         color = yellow
 
