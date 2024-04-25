@@ -183,12 +183,14 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
             #amt.draw_type = "BBONE"
             return armature
         
-    def create_default_bone_group(self,armature):
+    def create_default_bone_group(self,bone, armature):
         default_bone_group = None
         if "default_bones" not in armature.data.collections:
             default_bone_group = armature.data.collections.new("default_bones")
         else:
             default_bone_group = armature.data.collections["default_bones"]
+        default_bone_group.assign(bone)
+        bone.color.palette = "THEME08"
         return default_bone_group 
 
     def create_bones(self, context, armature):
@@ -229,7 +231,7 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
             bone.select_tail = True
             armature.data.edit_bones.active = bone
             self.current_bone = bone
-            self.create_default_bone_group(armature)    
+            self.create_default_bone_group(bone, armature)    
     
     def drag_bone(self,context, event ,bone=None):
         ### math.atan2(0.5, 0.5)*180/math.pi
