@@ -183,15 +183,15 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
             #amt.draw_type = "BBONE"
             return armature
         
-    def create_default_bone_group(self,bone, armature):
-        default_bone_group = None
+    def create_default_bone_collection(self,bone, armature):
+        bone_collection = None
         if "default_bones" not in armature.data.collections:
-            default_bone_group = armature.data.collections.new("default_bones")
+            bone_collection = armature.data.collections.new("default_bones")
         else:
-            default_bone_group = armature.data.collections["default_bones"]
-        default_bone_group.assign(bone)
+            bone_collection = armature.data.collections["default_bones"]
+        bone_collection.assign(bone)
         bone.color.palette = "THEME08"
-        return default_bone_group 
+        return bone_collection 
 
     def create_bones(self, context, armature):
         if armature != None:
@@ -231,7 +231,7 @@ class COATOOLS_OT_QuickArmature(bpy.types.Operator):
             bone.select_tail = True
             armature.data.edit_bones.active = bone
             self.current_bone = bone
-            self.create_default_bone_group(bone, armature)    
+            self.create_default_bone_collection(bone, armature)    
     
     def drag_bone(self,context, event ,bone=None):
         ### math.atan2(0.5, 0.5)*180/math.pi
@@ -555,7 +555,7 @@ class COATOOLS_OT_SetStretchBone(bpy.types.Operator):
         stretch_to_constraint.subtarget = bone_name
         stretch_to_constraint.keep_axis = "PLANE_Z" 
         stretch_to_constraint.volume = "VOLUME_X"
-        functions.set_bone_group(self, context.active_object, context.active_object.pose.bones[bone_name],group="stretch_to",theme = "THEME07")
+        functions.set_bone_collection(self, context.active_object, context.active_object.pose.bones[bone_name],group="stretch_to",theme = "THEME07")
         return{'FINISHED'}
 
 ######################################################################################################################################### Set IK Constraint 
@@ -667,7 +667,7 @@ class COATOOLS_OT_SetIK(bpy.types.Operator):
         ik_const.subtarget = ik_target_name
         ik_const.chain_count = ik_length
         
-        functions.set_bone_group(self, context.active_object, context.active_object.pose.bones[ik_target_name])
+        functions.set_bone_collection(self, context.active_object, context.active_object.pose.bones[ik_target_name])
         
         if self.replace_bone:
             copy_loc_const = bone.constraints.new("COPY_LOCATION")
@@ -677,8 +677,7 @@ class COATOOLS_OT_SetIK(bpy.types.Operator):
             copy_rot_const = bone.constraints.new("COPY_ROTATION")
             copy_rot_const.target = context.active_object
             copy_rot_const.subtarget = ik_target_name
-            context.active_object.data.bones[bone.name].layers[1] = True
-            context.active_object.data.bones[bone.name].layers[0] = False
+            functions.set_bone_collection(self, context.active_object, bone, "hidden_bones", "DEFAULT", False, True)
             
         bpy.ops.ed.undo_push(message="Set Ik")
         return{'FINISHED'}
@@ -911,9 +910,9 @@ class COATOOLS_OT_CreateStretchIK(bpy.types.Operator):
             joint_bone_ctrl["coa_stretch_ik_data"] = str([c_bone_ctrl.name,"joint_bone_ctrl"])
         
         ### set bone colors
-        functions.set_bone_group(self, obj, c_bone_ctrl,group = "ik_group" ,theme = "THEME09")
+        functions.set_bone_collection(self, obj, c_bone_ctrl,group = "ik_group" ,theme = "THEME09")
         for joint_bone_ctrl in joint_bones_ctrl:
-            functions.set_bone_group(self, obj, joint_bone_ctrl,group = "ik_group" ,theme = "THEME09")
+            functions.set_bone_collection(self, obj, joint_bone_ctrl,group = "ik_group" ,theme = "THEME09")
         
         return {"FINISHED"}
     

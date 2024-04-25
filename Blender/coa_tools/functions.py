@@ -613,15 +613,19 @@ def set_middle_mouse_move(enable):
 def assign_tex_to_uv(image,uv):
     for i,data in enumerate(uv.data):
         uv.data[i].image = image
-        
-def set_bone_group(self, armature, pose_bone,group = "ik_group" ,theme = "THEME09"):
+
+def set_bone_collection(self, armature, pose_bone, group = "ik_group", theme = "THEME09", visible=True, exclusive=False):
     new_group = None
-    if group not in armature.pose.bone_groups:
-        new_group = armature.pose.bone_groups.new(name=group)
-        new_group.color_set = theme
+    if group not in armature.data.collections:
+        new_group = armature.data.collections.new(group)
     else:
-        new_group = armature.pose.bone_groups[group]
-    pose_bone.bone_group = new_group
+        new_group = armature.data.collections[group]
+    pose_bone.bone.color.palette = theme
+    new_group.is_visible = visible
+    if exclusive:
+        pose_bone.bone.collections.clear()
+    new_group.assign(pose_bone.bone)
+
 
 last_sprite_object = None        
 def get_sprite_object(obj):
