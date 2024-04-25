@@ -19,7 +19,6 @@ Created by Andreas Esau
 '''
     
 import bpy
-import bgl
 import gpu
 from gpu_extras.batch import batch_for_shader
 import bpy_extras
@@ -39,7 +38,7 @@ from .. functions_draw import *
 import traceback
 import random
 
-BONE_LAYERS = []
+BONE_COLLECTIONS = []
 class COATOOLS_OT_EditWeights(bpy.types.Operator):
     bl_idname = "coa_tools.edit_weights"
     bl_label = "Select Child"
@@ -93,8 +92,8 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
         armature = get_armature(get_sprite_object(obj))
         armature.hide_viewport = False
         bpy.ops.object.mode_set(mode="OBJECT")
-        for i,bone_layer in enumerate(BONE_LAYERS):
-            armature.data.layers[i] = bone_layer
+        for i, visible in enumerate(BONE_COLLECTIONS):
+            armature.data.collections[i].is_visible = visible
 
         for name in self.selected_object_names:
             obj = bpy.data.objects[name]
@@ -113,7 +112,7 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
         self.exit_edit_weights(context)
         sprite_object.coa_tools.edit_weights = False
         sprite_object.coa_tools.edit_mode = "OBJECT"
-        bpy.context.space_data.shading.type = 'RENDERED'
+        bpy.context.space_data.shading.type = 'MATERIAL'
         for area in bpy.context.screen.areas:
             if area.type == "VIEW_3D":
                 area.spaces[0].overlay.show_paint_wire = False
@@ -207,11 +206,11 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
             
         if armature != None:
             self.armature_set_mode(context,"POSE",True)
-            global BONE_LAYERS
-            BONE_LAYERS = []
-            for i,bone_layer in enumerate(armature.data.layers):
-                BONE_LAYERS.append(bool(bone_layer))
-                armature.data.layers[i] = True
+            global BONE_COLLECTIONS
+            BONE_COLLECTIONS = []
+            for collection in armature.data.collections:
+                BONE_COLLECTIONS.append(collection.is_visible)
+                collection.is_visible = True
             self.select_bone()
             
         sprite = context.active_object
@@ -231,7 +230,6 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
         bpy.ops.view3d.view_selected()
 
         ### set correct viewport shading
-        # bpy.context.space_data.shading.type = 'RENDERED'
         for area in bpy.context.screen.areas:
             if area.type == "VIEW_3D":
                 area.spaces[0].overlay.show_paint_wire = True
@@ -241,8 +239,6 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
         
         
         ### start draw call
-        # args = ()
-        # self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
         args = ()
         self.draw_handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_callback_px, args, "WINDOW", "POST_PIXEL")
         return {"RUNNING_MODAL"}
@@ -254,25 +250,14 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
         coord_2d = bpy_extras.view3d_utils.location_3d_to_region_2d(region, rv3d, coord)
         return coord_2d
 
-    def draw_coords(self, coords=[], color=[], indices=[], draw_type="LINE_STRIP", shader_type="2D_UNIFORM_COLOR", line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
-        bgl.glLineWidth(line_width)
-        if point_size != None:
-            bgl.glPointSize(point_size)
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glEnable(bgl.GL_LINE_SMOOTH)
-
+    def draw_coords(self, coords=[], color=[], indices=[], draw_type="TRIS", shader_type="UNIFORM_COLOR", line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
         shader = gpu.shader.from_builtin(shader_type)
         if len(indices) > 0:
             batch = batch_for_shader(shader, draw_type, {"pos": coords}, indices=indices)
         else:
             batch = batch_for_shader(shader, draw_type, {"pos": coords})
-        shader.bind()
         shader.uniform_float("color", color)
         batch.draw(shader)
-
-        bgl.glDisable(bgl.GL_BLEND)
-        bgl.glDisable(bgl.GL_LINE_SMOOTH)
-        return shader
 
     def draw_callback_px(self):
         obj = bpy.context.active_object
@@ -326,5 +311,3 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
                         if i <= detail:
                             indices.append([0,i,i+1])
                     self.draw_coords(coords=coords, indices=indices, color=color, draw_type=CONSTANTS.DRAW_TRIS)
-
-                    # self.draw_coords(coords=[vert_2d], color=color, draw_type=CONSTANTS.DRAW_POINTS, point_size=8)
