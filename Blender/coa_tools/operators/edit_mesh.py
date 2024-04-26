@@ -1010,10 +1010,11 @@ class COATOOLS_OT_DrawContour(bpy.types.Operator):
                 ### check if mouse is in 3d View
                 coord = mathutils.Vector((event.mouse_region_x, event.mouse_region_y))
                 view_3d_width = bpy.context.area.width - bpy.context.area.regions[5].width
-                if coord[0] < 0 or coord[0] > view_3d_width:
+                tools_width = bpy.context.area.regions[4].width
+                if coord[0] < tools_width or coord[0] > view_3d_width:
                     self.inside_area = False
                     bpy.context.window.cursor_set("DEFAULT")
-                elif coord[1] < 0 or coord[1] > bpy.context.area.height:
+                elif coord[1] < tools_width or coord[1] > bpy.context.area.height:
                     self.inside_area = False
                     bpy.context.window.cursor_set("DEFAULT")
                 else:
