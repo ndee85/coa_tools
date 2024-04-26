@@ -1,5 +1,5 @@
 import bpy
-import blf, bgl
+import blf
 from mathutils import Vector
 from .. functions import get_sprite_object
 import gpu
@@ -42,7 +42,7 @@ class COATOOLS_OT_ShowHelp(bpy.types.Operator):
         for i, line in enumerate(lines):
             
             blf.position(self.font_id, 15+self.region_offset, pos_y-(line_height*i), 0)
-            blf.size(self.font_id, size, 72)
+            blf.size(self.font_id, size)
             blf.draw(self.font_id, line)
             
     def invoke(self, context, event):
@@ -101,21 +101,12 @@ class COATOOLS_OT_ShowHelp(bpy.types.Operator):
         
         return {"FINISHED"}
 
-    def draw_coords(self, coords=[], color=[(1.0, 1.0, 1.0, 1.0)], draw_type="LINE_STRIP", shader_type="2D_UNIFORM_COLOR", line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
-        bgl.glLineWidth(line_width)
-        if point_size != None:
-            bgl.glPointSize(point_size)
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glEnable(bgl.GL_LINE_SMOOTH)
-
+    def draw_coords(self, coords=[], color=[(1.0, 1.0, 1.0, 1.0)], draw_type=CONSTANTS.DRAW_TRIS, shader_type=CONSTANTS.SHADER_UNIFORM_COLOR, line_width=2, point_size=None):  # draw_types -> LINE_STRIP, LINES, POINTS
         shader = gpu.shader.from_builtin(shader_type)
         batch = batch_for_shader(shader, draw_type, {"pos": coords, "color":color})
+        gpu.state.depth_mask_set(True)
         shader.bind()
-        # shader.uniform_float("color", color)
         batch.draw(shader)
-
-        bgl.glDisable(bgl.GL_BLEND)
-        bgl.glDisable(bgl.GL_LINE_SMOOTH)
         return shader
 
     def draw_callback_px(self):
@@ -142,7 +133,7 @@ class COATOOLS_OT_ShowHelp(bpy.types.Operator):
         v4 = Vector((x_coord1,y_coord1))
         verts = [v1,v2,v3,v1,v3,v4]
         colors = [c1,c2,c2,c1,c2,c1]
-        self.draw_coords(coords=verts, color=colors,draw_type=CONSTANTS.DRAW_TRIS, shader_type=CONSTANTS.SHADER_2D_SMOOTH_COLOR)
+        self.draw_coords(coords=verts, color=colors,draw_type=CONSTANTS.DRAW_TRIS, shader_type=CONSTANTS.SHADER_SMOOTH_COLOR)
         
         
         ### draw hotkeys help
@@ -313,9 +304,3 @@ class COATOOLS_OT_ShowHelp(bpy.types.Operator):
             if len(text) == 3:
                 color = text[2]
             self.write_text(line,size=lineheight,pos_y=linebreak_size,color=color)
-        
-        
-        # restore opengl defaults
-        bgl.glLineWidth(1)
-        bgl.glDisable(bgl.GL_BLEND)
-        # bgl.glColor4f(0.0, 0.0, 0.0, 1.0)
