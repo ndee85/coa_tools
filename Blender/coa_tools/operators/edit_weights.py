@@ -310,4 +310,5 @@ class COATOOLS_OT_EditWeights(bpy.types.Operator):
                         coords.append(Vector((x,y)))
                         if i <= detail:
                             indices.append([0,i,i+1])
-                    self.draw_coords(coords=coords, indices=indices, color=color, draw_type=CONSTANTS.DRAW_TRIS)
+                    if weight > 0.0000001:
+                        self.draw_coords(coords=coords, indices=indices, color=color, draw_type=CONSTANTS.DRAW_TRIS)
