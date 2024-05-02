@@ -45,6 +45,7 @@ class COATOOLS_OT_CreateSpriteObject(bpy.types.Operator):
 
         if context.active_object != None and obj.type == "ARMATURE" and obj.mode == "POSE":
             context.view_layer.objects.active = None
+        bpy.ops.object.mode_set(mode="OBJECT")
         bpy.ops.object.armature_add(radius=1,
                                     enter_editmode=False,
                                     align='WORLD',
