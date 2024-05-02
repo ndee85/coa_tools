@@ -319,8 +319,7 @@ def create_outliner_items(dummy):
                 if obj.type == "MESH":
                     sorted_sprites.append(obj)
             sorted_sprites.sort(key=lambda x: x.location.y, reverse=False)
-    items += sorted_sprites
-
+            items += sorted_sprites
     sprite_object = None
     global i
     i = -1
