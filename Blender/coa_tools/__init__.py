@@ -267,9 +267,6 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    # register tools
-    # bpy.utils.register_tool(edit_mesh.COATOOLS_TO_DrawPolygon, after={"builtin.cursor"}, separator=True, group=True)
-
     # register props and keymap
     props.register()
     register_keymaps()
@@ -289,9 +286,6 @@ def unregister():
     # unregister classes
     for cls in classes:
         bpy.utils.unregister_class(cls)
-
-    # unregister tools
-    bpy.utils.unregister_tool(edit_mesh.COATOOLS_TO_DrawPolygon)
 
     # unregisters props and keymap
     props.unregister()
